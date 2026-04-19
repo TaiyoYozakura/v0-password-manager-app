@@ -53,6 +53,11 @@ import {
 type SortKey = "date-desc" | "name-asc" | "tag-asc"
 
 const PAGE_SIZE = 10
+const URL_MAX = 24
+
+function truncateUrl(url: string) {
+  return url.length > URL_MAX ? `${url.slice(0, URL_MAX)}...` : url
+}
 
 export default function PasswordsPage() {
   const router = useRouter()
@@ -336,15 +341,39 @@ export default function PasswordsPage() {
                                   )}
                                 </div>
                                 {e.siteUrl && (
-                                  <p className="truncate text-xs text-muted-foreground">{e.siteUrl}</p>
+                                  <div className="flex items-center gap-1">
+                                    <span
+                                      className="font-mono text-xs text-muted-foreground"
+                                      title={e.siteUrl}
+                                    >
+                                      {truncateUrl(e.siteUrl)}
+                                    </span>
+                                    <InlineCopyButton
+                                      label="Copy URL"
+                                      onClick={() => void copy(e.siteUrl, "URL copied")}
+                                    />
+                                  </div>
                                 )}
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <div className="max-w-[240px] truncate text-sm">
-                              {e.email || e.username || <span className="text-muted-foreground">—</span>}
-                            </div>
+                            {e.email || e.username ? (
+                              <div className="flex max-w-[240px] items-center gap-1">
+                                <span className="truncate text-sm">{e.email || e.username}</span>
+                                <InlineCopyButton
+                                  label={e.email ? "Copy email" : "Copy username"}
+                                  onClick={() =>
+                                    void copy(
+                                      (e.email || e.username) as string,
+                                      e.email ? "Email copied" : "Username copied",
+                                    )
+                                  }
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">—</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <TagBadge tag={e.tag} />
@@ -411,15 +440,37 @@ export default function PasswordsPage() {
                             )}
                           </div>
                           {e.siteUrl && (
-                            <p className="truncate text-xs text-muted-foreground">{e.siteUrl}</p>
+                            <div className="flex items-center gap-1">
+                              <span
+                                className="truncate font-mono text-xs text-muted-foreground"
+                                title={e.siteUrl}
+                              >
+                                {truncateUrl(e.siteUrl)}
+                              </span>
+                              <InlineCopyButton
+                                label="Copy URL"
+                                onClick={() => void copy(e.siteUrl, "URL copied")}
+                              />
+                            </div>
                           )}
                         </div>
                         <TagBadge tag={e.tag} />
                       </div>
                       {(e.email || e.username) && (
-                        <div className="text-sm">
-                          <span className="text-muted-foreground">Account: </span>
-                          <span className="font-medium">{e.email || e.username}</span>
+                        <div className="flex items-center gap-1 text-sm">
+                          <span className="text-muted-foreground">Account:</span>
+                          <span className="min-w-0 flex-1 truncate font-medium">
+                            {e.email || e.username}
+                          </span>
+                          <InlineCopyButton
+                            label={e.email ? "Copy email" : "Copy username"}
+                            onClick={() =>
+                              void copy(
+                                (e.email || e.username) as string,
+                                e.email ? "Email copied" : "Username copied",
+                              )
+                            }
+                          />
                         </div>
                       )}
                       <div className="flex items-center justify-between gap-3 rounded-md bg-secondary/40 px-3 py-2">
@@ -551,6 +602,32 @@ function IconButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>{btn}</TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+function InlineCopyButton({
+  label,
+  onClick,
+}: {
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onClick}
+          aria-label={label}
+          className="size-6 shrink-0 text-muted-foreground hover:text-foreground"
+        >
+          <Copy className="size-3.5" aria-hidden />
+        </Button>
+      </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
   )
