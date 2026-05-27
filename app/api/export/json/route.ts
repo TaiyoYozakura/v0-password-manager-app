@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuth } from "firebase-admin/auth"
 import { getFirestore } from "firebase-admin/firestore"
 import { verifyMasterPin } from "@/lib/crypto/bcrypt"
-import { getProfile } from "@/lib/firebase/profile"
-import { decryptPassword, decryptPin } from "@/lib/crypto/encryption"
+import { decryptString, deriveKey } from "@/lib/crypto/encryption"
 import { initializeAdminApp } from "@/lib/firebase/admin"
-import type { DecryptedPasswordEntry, DecryptedPinEntry } from "@/lib/types"
 
 // POST /api/export/json
 // Requires Master PIN verification. Returns unencrypted passwords as JSON.

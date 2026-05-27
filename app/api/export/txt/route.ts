@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuth } from "firebase-admin/auth"
 import { getFirestore } from "firebase-admin/firestore"
 import { verifyMasterPin } from "@/lib/crypto/bcrypt"
-import { decryptPassword } from "@/lib/crypto/encryption"
+import { decryptString, deriveKey } from "@/lib/crypto/encryption"
 import { initializeAdminApp } from "@/lib/firebase/admin"
 
 // POST /api/export/txt
@@ -91,6 +91,10 @@ export async function POST(request: NextRequest) {
       pinLockedUntil: null,
     })
 
+    // Get user email for key derivation
+    const userRecord = await auth.getUser(uid)
+    const encryptionKeyWordArray = deriveKey(uid, userRecord.email!)
+
     // Fetch encrypted passwords
     const passwordsSnap = await db
       .collection("users")
@@ -98,7 +102,7 @@ export async function POST(request: NextRequest) {
       .collection("passwords")
       .get()
 
-    // Decrypt on server-side (since we have the key) and generate CSV
+    // Decrypt on server-side and generate CSV
     const csvLines = [
       "Site Name,Site URL,Email/Username,Password",
     ]
@@ -106,18 +110,12 @@ export async function POST(request: NextRequest) {
     for (const doc of passwordsSnap.docs) {
       const data = doc.data()
       try {
-        const decrypted = decryptPassword(
-          data.encryptedEmail,
-          data.encryptedUsername,
-          data.encryptedPassword,
-          encryptionKey,
-          data.integrityHash,
-        )
-
         const siteName = data.siteName || ""
         const siteUrl = data.siteUrl || ""
-        const account = decrypted.email || decrypted.username || ""
-        const password = decrypted.password || ""
+        const email = decryptString(data.encryptedEmail, encryptionKeyWordArray) || ""
+        const username = decryptString(data.encryptedUsername, encryptionKeyWordArray) || ""
+        const password = decryptString(data.encryptedPassword, encryptionKeyWordArray) || ""
+        const account = email || username
 
         // CSV escape
         const escape = (s: string) => {
