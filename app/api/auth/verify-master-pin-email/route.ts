@@ -4,16 +4,16 @@ import { getFirestore } from "firebase-admin/firestore"
 import { verifyMasterPin } from "@/lib/crypto/bcrypt"
 import { initializeAdminApp } from "@/lib/firebase/admin"
 
-// POST /api/auth/verify-master-pin
-// Verify Master PIN and return Firebase custom token for authentication
+// POST /api/auth/verify-master-pin-email
+// Verify Master PIN using email + PIN to find and authenticate user
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { uid, masterPin } = body
+    const { email, masterPin } = body
 
-    if (!uid || !masterPin) {
+    if (!email || !masterPin) {
       return NextResponse.json(
-        { error: "Missing uid or masterPin" },
+        { error: "Missing email or masterPin" },
         { status: 400 },
       )
     }
@@ -22,6 +22,19 @@ export async function POST(request: NextRequest) {
     const adminApp = initializeAdminApp()
     const auth = getAuth(adminApp)
     const db = getFirestore(adminApp)
+
+    // Look up user by email
+    let userRecord
+    try {
+      userRecord = await auth.getUserByEmail(email)
+    } catch (err) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 },
+      )
+    }
+
+    const uid = userRecord.uid
 
     // Get user profile
     const profileSnap = await db
@@ -43,7 +56,9 @@ export async function POST(request: NextRequest) {
     // If Master PIN not set, deny
     if (!profile.masterPinHash || !profile.masterPinSalt) {
       return NextResponse.json(
-        { error: "Master PIN not set up. Please set it up in Settings or use Google Sign-In." },
+        {
+          error: `No Master PIN set for this account. Please set it up first or use Google Sign-In.`,
+        },
         { status: 403 },
       )
     }

@@ -12,8 +12,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
-import { MasterPinModal } from "@/components/vault/master-pin-modal"
-import { getAuth } from "firebase/auth"
+import { MasterPinLoginModal } from "@/components/vault/master-pin-login-modal"
+import { signInWithCustomToken } from "firebase/auth"
 import { getFirebase } from "@/lib/firebase/config"
 
 export default function LoginPage() {
@@ -48,7 +48,7 @@ export default function LoginPage() {
     }
   }
 
-  const onMasterPinSubmit = async (pin: string) => {
+  const onMasterPinSubmit = async (email: string, pin: string) => {
     if (!firebaseConfigured) {
       throw new Error("Firebase is not configured")
     }
@@ -56,16 +56,20 @@ export default function LoginPage() {
     setMasterPinLoading(true)
     try {
       const { auth } = getFirebase()
-      const idToken = await auth.currentUser?.getIdToken()
 
-      if (!idToken) {
-        throw new Error("Not authenticated")
+      // First, use email to find the uid via fetchSignInMethodsForEmail
+      const signInMethods = await auth.fetchSignInMethodsForEmail(email)
+      
+      if (signInMethods.length === 0) {
+        throw new Error("No account found for this email. Try Google Sign-In or create an account.")
       }
 
-      const res = await fetch("/api/auth/verify-master-pin", {
+      // Get the uid by creating an anonymous user and getting their data, or
+      // We can call the verify API with email and let it look up the uid
+      const res = await fetch("/api/auth/verify-master-pin-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken, masterPin: pin }),
+        body: JSON.stringify({ email, masterPin: pin }),
       })
 
       const data = await res.json()
@@ -74,7 +78,11 @@ export default function LoginPage() {
         throw new Error(data.error || "Verification failed")
       }
 
-      toast.success("Authenticated")
+      // Use custom token to sign in
+      const customToken = data.token
+      await signInWithCustomToken(auth, customToken)
+
+      toast.success("Authenticated with Master PIN")
       setShowMasterPin(false)
       router.replace("/dashboard")
     } catch (err) {
@@ -187,12 +195,10 @@ export default function LoginPage() {
         </p>
       </div>
 
-      <MasterPinModal
+      <MasterPinLoginModal
         open={showMasterPin}
         onOpenChange={setShowMasterPin}
         onSubmit={onMasterPinSubmit}
-        title="Sign in with Master PIN"
-        description="Enter your 8-digit Master PIN to access your vault"
       />
     </main>
   )
