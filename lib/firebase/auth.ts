@@ -10,12 +10,23 @@ import {
 import { getFirebase } from "./config"
 
 export async function signInWithGoogle(): Promise<User> {
-  const { auth } = getFirebase()
-  await setPersistence(auth, browserLocalPersistence)
-  const provider = new GoogleAuthProvider()
-  provider.setCustomParameters({ prompt: "select_account" })
-  const result = await signInWithPopup(auth, provider)
-  return result.user
+  try {
+    console.log("[v0] getFirebase() initializing...")
+    const { auth } = getFirebase()
+    console.log("[v0] Firebase auth obtained, setting persistence...")
+    await setPersistence(auth, browserLocalPersistence)
+    console.log("[v0] Persistence set, creating Google provider...")
+    const provider = new GoogleAuthProvider()
+    provider.setCustomParameters({ prompt: "select_account" })
+    console.log("[v0] Provider configured, opening popup...")
+    const result = await signInWithPopup(auth, provider)
+    console.log("[v0] Sign-in successful, returning user:", result.user.email)
+    return result.user
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err)
+    console.error("[v0] Google Sign-In failed:", errorMsg)
+    throw err
+  }
 }
 
 export async function signOut(): Promise<void> {

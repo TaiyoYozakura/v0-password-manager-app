@@ -36,12 +36,26 @@ export default function LoginPage() {
     }
     setSigningIn(true)
     try {
+      console.log("[v0] Starting Google Sign-In...")
       await signInWithGoogle()
+      console.log("[v0] Sign-In successful, redirecting...")
       toast.success("Signed in")
       router.replace("/dashboard")
     } catch (err) {
-      const message =
-        err instanceof Error && err.message.includes("popup") ? "Sign-in popup was closed" : "Sign-in failed"
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      console.error("[v0] Sign-In error:", errorMsg)
+      
+      let message = "Sign-in failed"
+      if (errorMsg.includes("popup-blocked")) {
+        message = "Sign-in popup was blocked. Please allow popups and try again."
+      } else if (errorMsg.includes("unauthorized-domain")) {
+        message = "Domain not authorized. Add this domain to Firebase Authentication settings."
+      } else if (errorMsg.includes("CONFIGURATION_NOT_FOUND")) {
+        message = "Google Sign-In not configured. Enable it in Firebase Console > Authentication > Sign-in method."
+      } else if (errorMsg.includes("popup")) {
+        message = "Sign-in popup was closed"
+      }
+      
       toast.error(message)
     } finally {
       setSigningIn(false)
@@ -132,14 +146,48 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {!firebaseConfigured && (
-              <Alert variant="destructive">
-                <AlertTitle>Firebase not configured</AlertTitle>
-                <AlertDescription>
-                  Add your <code>NEXT_PUBLIC_FIREBASE_*</code> environment variables, then reload.
-                </AlertDescription>
-              </Alert>
-            )}
+      {!firebaseConfigured && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertTitle>Firebase not configured</AlertTitle>
+          <AlertDescription className="mt-2 space-y-2 text-sm">
+            <div>Add these environment variables to your Vercel project:</div>
+            <ul className="list-inside list-disc space-y-1 pl-2 font-mono text-xs">
+              <li>NEXT_PUBLIC_FIREBASE_API_KEY</li>
+              <li>NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN</li>
+              <li>NEXT_PUBLIC_FIREBASE_PROJECT_ID</li>
+              <li>NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET</li>
+              <li>NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID</li>
+              <li>NEXT_PUBLIC_FIREBASE_APP_ID</li>
+            </ul>
+            <div className="pt-2">
+              Then refresh this page.
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {firebaseConfigured && (
+        <Alert className="mt-4 border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100">
+          <AlertTitle>Setup checklist</AlertTitle>
+          <AlertDescription className="mt-2 space-y-2 text-sm">
+            <div>To use sign-in, make sure in Firebase Console:</div>
+            <ul className="list-inside list-disc space-y-1 pl-2">
+              <li>
+                <strong>Authentication</strong> → Sign-in method → Google is <strong>Enabled</strong>
+              </li>
+              <li>
+                <strong>Authentication</strong> → Settings → Authorized domains includes this domain
+              </li>
+              <li>
+                <strong>Firestore Database</strong> is created in production mode
+              </li>
+              <li>
+                <strong>Firestore Rules</strong> are published (copy from firestore.rules file)
+              </li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
 
             <div className="flex flex-col gap-3">
               <Button
