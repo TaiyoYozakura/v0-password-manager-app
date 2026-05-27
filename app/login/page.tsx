@@ -4,18 +4,24 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import toast from "react-hot-toast"
-import { ShieldCheck, Lock, KeyRound } from "lucide-react"
+import { ShieldCheck, Lock, KeyRound, LogIn } from "lucide-react"
 import { useAuth } from "@/components/providers/auth-provider"
 import { signInWithGoogle } from "@/lib/firebase/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Input } from "@/components/ui/input"
+import { MasterPinModal } from "@/components/vault/master-pin-modal"
+import { getAuth } from "firebase/auth"
+import { getFirebase } from "@/lib/firebase/config"
 
 export default function LoginPage() {
   const router = useRouter()
   const { user, loading, firebaseConfigured } = useAuth()
   const [signingIn, setSigningIn] = useState(false)
+  const [showMasterPin, setShowMasterPin] = useState(false)
+  const [masterPinLoading, setMasterPinLoading] = useState(false)
 
   useEffect(() => {
     if (!loading && user) {
@@ -39,6 +45,44 @@ export default function LoginPage() {
       toast.error(message)
     } finally {
       setSigningIn(false)
+    }
+  }
+
+  const onMasterPinSubmit = async (pin: string) => {
+    if (!firebaseConfigured) {
+      throw new Error("Firebase is not configured")
+    }
+
+    setMasterPinLoading(true)
+    try {
+      const { auth } = getFirebase()
+      const idToken = await auth.currentUser?.getIdToken()
+
+      if (!idToken) {
+        throw new Error("Not authenticated")
+      }
+
+      const res = await fetch("/api/auth/verify-master-pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken, masterPin: pin }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Verification failed")
+      }
+
+      toast.success("Authenticated")
+      setShowMasterPin(false)
+      router.replace("/dashboard")
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Master PIN verification failed"
+      throw new Error(message)
+    } finally {
+      setMasterPinLoading(false)
     }
   }
 
@@ -89,26 +133,39 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            <Button
-              onClick={onSignIn}
-              disabled={signingIn || !firebaseConfigured}
-              className="h-11 w-full gap-3 text-sm font-medium"
-              size="lg"
-            >
-              {signingIn ? (
-                <Spinner className="size-4" />
-              ) : (
-                <Image
-                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                  alt=""
-                  width={18}
-                  height={18}
-                  aria-hidden
-                  unoptimized
-                />
-              )}
-              {signingIn ? "Signing in..." : "Sign in with Google"}
-            </Button>
+            <div className="flex flex-col gap-3">
+              <Button
+                onClick={onSignIn}
+                disabled={signingIn || !firebaseConfigured}
+                className="h-11 w-full gap-3 text-sm font-medium"
+                size="lg"
+              >
+                {signingIn ? (
+                  <Spinner className="size-4" />
+                ) : (
+                  <Image
+                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                    alt=""
+                    width={18}
+                    height={18}
+                    aria-hidden
+                    unoptimized
+                  />
+                )}
+                {signingIn ? "Signing in..." : "Sign in with Google"}
+              </Button>
+
+              <Button
+                onClick={() => setShowMasterPin(true)}
+                disabled={!firebaseConfigured}
+                variant="outline"
+                className="h-11 w-full gap-2 text-sm font-medium"
+                size="lg"
+              >
+                <LogIn className="size-4" aria-hidden />
+                Sign in with Master PIN
+              </Button>
+            </div>
 
             <div className="grid gap-3 border-t border-border pt-5 text-sm">
               <Feature
@@ -129,6 +186,14 @@ export default function LoginPage() {
           Protected by Firebase Authentication. Data encrypted client-side before sync.
         </p>
       </div>
+
+      <MasterPinModal
+        open={showMasterPin}
+        onOpenChange={setShowMasterPin}
+        onSubmit={onMasterPinSubmit}
+        title="Sign in with Master PIN"
+        description="Enter your 8-digit Master PIN to access your vault"
+      />
     </main>
   )
 }

@@ -43,3 +43,56 @@ export async function setAutoLogoutMinutes(uid: string, minutes: number): Promis
     { merge: true },
   )
 }
+
+export async function setMasterPin(
+  uid: string,
+  hash: string,
+  salt: string,
+): Promise<void> {
+  const { db } = getFirebase()
+  const ref = doc(db, "users", uid, "profile", PROFILE_DOC)
+  await setDoc(
+    ref,
+    {
+      masterPinHash: hash,
+      masterPinSalt: salt,
+      requiresMasterPin: true,
+      failedPinAttempts: 0,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  )
+}
+
+export async function recordFailedPinAttempt(uid: string): Promise<void> {
+  const { db } = getFirebase()
+  const ref = doc(db, "users", uid, "profile", PROFILE_DOC)
+  const profile = await getProfile(uid)
+  const attempts = (profile?.failedPinAttempts ?? 0) + 1
+  const isLocked = attempts >= 3
+  const lockedUntil = isLocked ? Date.now() + 15 * 60 * 1000 : undefined
+
+  await setDoc(
+    ref,
+    {
+      failedPinAttempts: attempts,
+      ...(isLocked && { pinLockedUntil: lockedUntil }),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  )
+}
+
+export async function resetPinAttempts(uid: string): Promise<void> {
+  const { db } = getFirebase()
+  const ref = doc(db, "users", uid, "profile", PROFILE_DOC)
+  await setDoc(
+    ref,
+    {
+      failedPinAttempts: 0,
+      pinLockedUntil: undefined,
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  )
+}

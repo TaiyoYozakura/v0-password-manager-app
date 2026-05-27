@@ -64,6 +64,11 @@ export const DEFAULT_TAGS = [
 export interface UserProfile {
   appLockPinHash?: string
   appLockPinSalt?: string
+  masterPinHash?: string
+  masterPinSalt?: string
+  requiresMasterPin?: boolean
+  failedPinAttempts?: number
+  pinLockedUntil?: number
   autoLogoutMinutes?: number
   createdAt?: Timestamp | null
   updatedAt?: Timestamp | null
