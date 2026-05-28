@@ -71,15 +71,8 @@ export default function LoginPage() {
     try {
       const { auth } = getFirebase()
 
-      // First, use email to find the uid via fetchSignInMethodsForEmail
-      const signInMethods = await auth.fetchSignInMethodsForEmail(email)
-      
-      if (signInMethods.length === 0) {
-        throw new Error("No account found for this email. Try Google Sign-In or create an account.")
-      }
-
-      // Get the uid by creating an anonymous user and getting their data, or
-      // We can call the verify API with email and let it look up the uid
+      // Call the verify API with email and Master PIN
+      // The API will look up the user by email and verify the PIN
       const res = await fetch("/api/auth/verify-master-pin-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
