@@ -13,6 +13,11 @@ export function initializeAdminApp(): admin.app.App {
   const privateKey = process.env.FIREBASE_PRIVATE_KEY
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
 
+  console.log("[v0] Admin SDK init - projectId:", projectId ? "✓ present" : "✗ missing")
+  console.log("[v0] Admin SDK init - privateKey:", privateKey ? "✓ present" : "✗ missing")
+  console.log("[v0] Admin SDK init - clientEmail:", clientEmail ? "✓ present" : "✗ missing")
+  console.log("[v0] All env vars:", Object.keys(process.env).filter(k => k.includes("FIREBASE")).sort())
+
   if (!projectId || !privateKey || !clientEmail) {
     throw new Error(
       "Missing Firebase Admin SDK env vars: FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL",
