@@ -21,10 +21,7 @@ import { useAuth } from "@/components/providers/auth-provider"
 import {
   setAppLockPin as persistAppLockPin,
   setAutoLogoutMinutes,
-  setMasterPin,
-  resetPinAttempts,
 } from "@/lib/firebase/profile"
-import { hashMasterPin } from "@/lib/crypto/bcrypt"
 import {
   deleteAllPasswords,
   listPasswords,
@@ -72,20 +69,13 @@ export default function SettingsPage() {
   const [confirmPin, setConfirmPin] = useState("")
   const [pinSaving, setPinSaving] = useState(false)
 
-  // Master PIN state
-  const [masterPinOpen, setMasterPinOpen] = useState(false)
-  const [masterPin1, setMasterPin1] = useState("")
-  const [masterPin2, setMasterPin2] = useState("")
-  const [savingMasterPin, setSavingMasterPin] = useState(false)
-
   // Auto-logout
   const [autoLogout, setAutoLogout] = useState<string>(String(profile?.autoLogoutMinutes ?? 15))
   const [savingLogout, setSavingLogout] = useState(false)
 
   // Export
   const [exportOpen, setExportOpen] = useState(false)
-  const [exportFormat, setExportFormat] = useState<"encrypted" | "csv">("encrypted")
-  const [exportMasterPin, setExportMasterPin] = useState("")
+  const [exportPassphrase, setExportPassphrase] = useState("")
   const [exporting, setExporting] = useState(false)
 
   // Danger zone
@@ -137,32 +127,6 @@ export default function SettingsPage() {
     }
   }
 
-  const onSetupMasterPin = async () => {
-    if (!user) return
-    if (masterPin1.length !== 8) {
-      toast.error("Master PIN must be 8 digits")
-      return
-    }
-    if (masterPin1 !== masterPin2) {
-      toast.error("Master PINs do not match")
-      return
-    }
-    setSavingMasterPin(true)
-    try {
-      const { hash, salt } = hashMasterPin(masterPin1)
-      await setMasterPin(user.uid, hash, salt)
-      await refreshProfile()
-      toast.success("Master PIN set up successfully")
-      setMasterPinOpen(false)
-      setMasterPin1("")
-      setMasterPin2("")
-    } catch {
-      toast.error("Could not set up Master PIN")
-    } finally {
-      setSavingMasterPin(false)
-    }
-  }
-
   const onSaveAutoLogout = async (value: string) => {
     if (!user) return
     const minutes = Number(value)
@@ -181,119 +145,70 @@ export default function SettingsPage() {
 
   const onExport = async () => {
     if (!user || !key) return
-
-    if (exportFormat === "encrypted") {
-      // Original encrypted export with passphrase
-      if (exportMasterPin.length < 8) {
-        toast.error("Use a passphrase of at least 8 characters")
-        return
+    if (exportPassphrase.length < 8) {
+      toast.error("Use a passphrase of at least 8 characters")
+      return
+    }
+    setExporting(true)
+    try {
+      const [passwords, pins] = await Promise.all([
+        listPasswords(user.uid, key),
+        listPins(user.uid, key),
+      ])
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        user: { uid: user.uid, email: user.email },
+        passwords: passwords.map((p) => ({
+          siteName: p.siteName,
+          siteUrl: p.siteUrl,
+          tag: p.tag,
+          username: p.username,
+          email: p.email,
+          password: p.password,
+          notes: p.notes,
+          createdAt: p.createdAt?.toISOString() ?? null,
+        })),
+        pins: pins.map((p) => ({
+          label: p.label,
+          category: p.category,
+          pin: p.pin,
+          notes: p.notes,
+          createdAt: p.createdAt?.toISOString() ?? null,
+        })),
       }
-      setExporting(true)
-      try {
-        const [passwords, pins] = await Promise.all([
-          listPasswords(user.uid, key),
-          listPins(user.uid, key),
-        ])
-        const payload = {
-          version: 1,
-          exportedAt: new Date().toISOString(),
-          user: { uid: user.uid, email: user.email },
-          passwords: passwords.map((p) => ({
-            siteName: p.siteName,
-            siteUrl: p.siteUrl,
-            tag: p.tag,
-            username: p.username,
-            email: p.email,
-            password: p.password,
-            notes: p.notes,
-            createdAt: p.createdAt?.toISOString() ?? null,
-          })),
-          pins: pins.map((p) => ({
-            label: p.label,
-            category: p.category,
-            pin: p.pin,
-            notes: p.notes,
-            createdAt: p.createdAt?.toISOString() ?? null,
-          })),
-        }
-        const json = JSON.stringify(payload, null, 2)
-        const encrypted = encryptWithPassphrase(json, exportMasterPin)
-        const blob = new Blob(
-          [
-            JSON.stringify(
-              {
-                format: "vaultly-export",
-                version: 1,
-                algorithm: "AES-256 (CryptoJS default)",
-                data: encrypted,
-              },
-              null,
-              2,
-            ),
-          ],
-          { type: "application/json" },
-        )
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `vaultly-export-${new Date().toISOString().slice(0, 10)}.json`
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
-        URL.revokeObjectURL(url)
-        toast.success("Encrypted export downloaded")
-        setExportOpen(false)
-        setExportMasterPin("")
-      } catch {
-        toast.error("Export failed")
-      } finally {
-        setExporting(false)
-      }
-    } else {
-      // CSV export with Master PIN verification
-      if (!exportMasterPin) {
-        toast.error("Enter your Master PIN")
-        return
-      }
-      setExporting(true)
-      try {
-        const idToken = await user?.getIdToken()
-        if (!idToken) throw new Error("Not authenticated")
-
-        const res = await fetch("/api/export/txt", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            idToken,
-            masterPin: exportMasterPin,
-            encryptionKey: key,
-          }),
-        })
-
-        if (!res.ok) {
-          const data = await res.json()
-          throw new Error(data.error || "Export failed")
-        }
-
-        const blob = await res.blob()
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement("a")
-        a.href = url
-        a.download = `vaultly-export-${new Date().toISOString().slice(0, 10)}.csv`
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
-        URL.revokeObjectURL(url)
-        toast.success("CSV export downloaded")
-        setExportOpen(false)
-        setExportMasterPin("")
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Export failed"
-        toast.error(message)
-      } finally {
-        setExporting(false)
-      }
+      const json = JSON.stringify(payload, null, 2)
+      const encrypted = encryptWithPassphrase(json, exportPassphrase)
+      const blob = new Blob(
+        [
+          JSON.stringify(
+            {
+              format: "vaultly-export",
+              version: 1,
+              algorithm: "AES-256 (CryptoJS default)",
+              data: encrypted,
+            },
+            null,
+            2,
+          ),
+        ],
+        { type: "application/json" },
+      )
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `vaultly-export-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      toast.success("Encrypted export downloaded")
+      setExportOpen(false)
+      setExportPassphrase("")
+    } catch {
+      toast.error("Export failed")
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -436,36 +351,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Master PIN */}
-      {profile?.masterPinHash ? (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Hash className="size-4" aria-hidden /> Master PIN
-            </CardTitle>
-            <CardDescription>8-digit PIN for advanced exports and authentication.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-green-600 dark:text-green-400">✓ Master PIN is set up</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card className="mt-4">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Hash className="size-4" aria-hidden /> Set up Master PIN
-            </CardTitle>
-            <CardDescription>Create an 8-digit PIN to unlock advanced export formats.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button variant="outline" onClick={() => setMasterPinOpen(true)} className="gap-2">
-              <Hash className="size-4" aria-hidden />
-              Set up Master PIN
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Theme */}
       <Card className="mt-4">
         <CardHeader>
@@ -602,127 +487,25 @@ export default function SettingsPage() {
         onConfirm={onDeleteAccount}
       />
 
-      {/* Master PIN Setup Dialog */}
-      <Dialog open={masterPinOpen} onOpenChange={setMasterPinOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Set up Master PIN</DialogTitle>
-            <DialogDescription>
-              Create an 8-digit PIN for advanced features like plaintext CSV exports.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="master-pin-1">Master PIN</Label>
-              <Input
-                id="master-pin-1"
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={8}
-                value={masterPin1}
-                onChange={(e) => setMasterPin1(e.target.value.slice(0, 8))}
-                placeholder="••••••••"
-                className="font-mono tracking-wider"
-                autoFocus
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="master-pin-2">Confirm Master PIN</Label>
-              <Input
-                id="master-pin-2"
-                type="password"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={8}
-                value={masterPin2}
-                onChange={(e) => setMasterPin2(e.target.value.slice(0, 8))}
-                placeholder="••••••••"
-                className="font-mono tracking-wider"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              This PIN is hashed with PBKDF2 and stored securely. It cannot be recovered if you forget it.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setMasterPinOpen(false)}
-              disabled={savingMasterPin}
-            >
-              Cancel
-            </Button>
-            <Button onClick={onSetupMasterPin} disabled={savingMasterPin || !masterPin1 || !masterPin2} className="gap-2">
-              {savingMasterPin && <Spinner className="size-4" />}
-              Set up PIN
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Export dialog */}
       <Dialog open={exportOpen} onOpenChange={setExportOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Export vault</DialogTitle>
+            <DialogTitle>Export encrypted backup</DialogTitle>
             <DialogDescription>
-              {exportFormat === "encrypted"
-                ? "Password-protected encrypted JSON backup"
-                : "Plaintext CSV (requires Master PIN verification)"}
+              Choose a passphrase to protect your encrypted backup file.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <div className="grid gap-2">
-              <Label>Export format</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={exportFormat === "encrypted" ? "default" : "outline"}
-                  onClick={() => setExportFormat("encrypted")}
-                  className="flex-1"
-                  size="sm"
-                >
-                  Encrypted JSON
-                </Button>
-                <Button
-                  type="button"
-                  variant={exportFormat === "csv" ? "default" : "outline"}
-                  onClick={() => setExportFormat("csv")}
-                  className="flex-1"
-                  size="sm"
-                  disabled={!profile?.masterPinHash}
-                >
-                  CSV
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="export-key">
-                {exportFormat === "encrypted" ? "Export passphrase" : "Master PIN"}
-              </Label>
-              <Input
-                id="export-key"
-                type="password"
-                inputMode={exportFormat === "csv" ? "numeric" : "text"}
-                value={exportMasterPin}
-                onChange={(e) => {
-                  if (exportFormat === "csv") {
-                    setExportMasterPin(e.target.value.slice(0, 8))
-                  } else {
-                    setExportMasterPin(e.target.value)
-                  }
-                }}
-                placeholder={
-                  exportFormat === "encrypted"
-                    ? "At least 8 characters"
-                    : "••••••••"
-                }
-                className={exportFormat === "csv" ? "font-mono tracking-wider" : ""}
-                autoFocus
-              />
-            </div>
+          <div className="grid gap-2">
+            <Label htmlFor="export-pass">Export passphrase</Label>
+            <Input
+              id="export-pass"
+              type="password"
+              value={exportPassphrase}
+              onChange={(e) => setExportPassphrase(e.target.value)}
+              placeholder="At least 8 characters"
+              autoFocus
+            />
           </div>
           <DialogFooter>
             <Button
@@ -732,7 +515,7 @@ export default function SettingsPage() {
             >
               Cancel
             </Button>
-            <Button onClick={onExport} disabled={exporting || !exportMasterPin} className="gap-2">
+            <Button onClick={onExport} disabled={exporting || !exportPassphrase} className="gap-2">
               {exporting ? <Spinner className="size-4" /> : <Download className="size-4" aria-hidden />}
               Download
             </Button>
