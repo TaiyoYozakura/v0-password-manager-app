@@ -9,7 +9,8 @@ let adminApp: admin.app.App | null = null
 export function initializeAdminApp(): admin.app.App {
   if (adminApp) return adminApp
 
-  const projectId = process.env.FIREBASE_PROJECT_ID
+  // Use public project ID if private one isn't set
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
   const privateKey = process.env.FIREBASE_PRIVATE_KEY
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL
 
@@ -20,7 +21,7 @@ export function initializeAdminApp(): admin.app.App {
 
   if (!projectId || !privateKey || !clientEmail) {
     throw new Error(
-      "Missing Firebase Admin SDK env vars: FIREBASE_PROJECT_ID, FIREBASE_PRIVATE_KEY, FIREBASE_CLIENT_EMAIL",
+      "Missing Firebase Admin SDK env vars: FIREBASE_PRIVATE_KEY and FIREBASE_CLIENT_EMAIL are required",
     )
   }
 
