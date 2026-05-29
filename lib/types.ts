@@ -70,6 +70,7 @@ export interface UserProfile {
   failedPinAttempts?: number
   pinLockedUntil?: number
   autoLogoutMinutes?: number
+  lastBackupDate?: number
   createdAt?: Timestamp | null
   updatedAt?: Timestamp | null
 }

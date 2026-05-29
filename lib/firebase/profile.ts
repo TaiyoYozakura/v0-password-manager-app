@@ -96,3 +96,22 @@ export async function resetPinAttempts(uid: string): Promise<void> {
     { merge: true },
   )
 }
+
+export async function updateLastBackupDate(uid: string): Promise<void> {
+  const { db } = getFirebase()
+  const ref = doc(db, "users", uid, "profile", PROFILE_DOC)
+  await setDoc(
+    ref,
+    {
+      lastBackupDate: Date.now(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true },
+  )
+}
+
+export function isBackupDue(profile: UserProfile | null): boolean {
+  if (!profile?.lastBackupDate) return true
+  const daysSinceBackup = (Date.now() - profile.lastBackupDate) / (1000 * 60 * 60 * 24)
+  return daysSinceBackup >= 30
+}

@@ -9,6 +9,7 @@ import {
   Moon,
   Monitor,
   Download,
+  Upload,
   ShieldCheck,
   Trash2,
   KeyRound,
@@ -21,12 +22,15 @@ import { useAuth } from "@/components/providers/auth-provider"
 import {
   setAppLockPin as persistAppLockPin,
   setAutoLogoutMinutes,
+  updateLastBackupDate,
+  isBackupDue,
 } from "@/lib/firebase/profile"
 import {
   deleteAllPasswords,
   listPasswords,
+  savePassword,
 } from "@/lib/firebase/passwords"
-import { deleteAllPins, listPins } from "@/lib/firebase/pins"
+import { deleteAllPins, listPins, savePin } from "@/lib/firebase/pins"
 import {
   encryptWithPassphrase,
   generateSalt,
@@ -48,6 +52,8 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
 import { ConfirmModal } from "@/components/vault/confirm-modal"
+import { ImportDialog } from "@/components/vault/import-dialog"
+import { BackupReminder } from "@/components/vault/backup-reminder"
 import Link from "next/link"
 import {
   Dialog,
@@ -78,6 +84,12 @@ export default function SettingsPage() {
   const [exportPassphrase, setExportPassphrase] = useState("")
   const [exporting, setExporting] = useState(false)
 
+  // Import
+  const [importOpen, setImportOpen] = useState(false)
+
+  // Backup reminder
+  const [daysSinceBackup, setDaysSinceBackup] = useState<number | undefined>()
+
   // Danger zone
   const [showDeletePasswords, setShowDeletePasswords] = useState(false)
   const [showDeletePins, setShowDeletePins] = useState(false)
@@ -86,6 +98,13 @@ export default function SettingsPage() {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (profile?.lastBackupDate) {
+      const daysSince = Math.floor((Date.now() - profile.lastBackupDate) / (1000 * 60 * 60 * 24))
+      setDaysSinceBackup(daysSince)
+    }
+  }, [profile?.lastBackupDate])
 
   useEffect(() => {
     setAutoLogout(String(profile?.autoLogoutMinutes ?? 15))
@@ -202,6 +221,13 @@ export default function SettingsPage() {
       a.click()
       a.remove()
       URL.revokeObjectURL(url)
+      
+      // Update last backup date
+      if (user) {
+        await updateLastBackupDate(user.uid)
+        await refreshProfile()
+      }
+      
       toast.success("Encrypted export downloaded")
       setExportOpen(false)
       setExportPassphrase("")
@@ -209,6 +235,45 @@ export default function SettingsPage() {
       toast.error("Export failed")
     } finally {
       setExporting(false)
+    }
+  }
+
+  const onImportVault = async (passwords: any[], pins: any[]) => {
+    if (!user || !key) return
+
+    try {
+      // Derive encryption key for encrypting imported data
+      const encKey = deriveKey(user.uid, user.email!)
+
+      // Import all passwords
+      for (const p of passwords) {
+        await savePassword(user.uid, {
+          siteName: p.siteName,
+          siteUrl: p.siteUrl,
+          tag: p.tag,
+          username: p.username,
+          email: p.email,
+          password: p.password,
+          notes: p.notes,
+        }, encKey)
+      }
+
+      // Import all pins
+      for (const pn of pins) {
+        await savePin(user.uid, {
+          label: pn.label,
+          category: pn.category,
+          pin: pn.pin,
+          notes: pn.notes,
+        }, encKey)
+      }
+
+      await refreshProfile()
+      toast.success(`Imported ${passwords.length} passwords and ${pins.length} PINs`)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Import failed"
+      toast.error(message)
+      throw err
     }
   }
 
@@ -263,6 +328,12 @@ export default function SettingsPage() {
         </Button>
         <h1 className="text-pretty text-2xl font-semibold tracking-tight">Settings</h1>
       </div>
+
+      {/* Backup reminder */}
+      <BackupReminder
+        onExportClick={() => setExportOpen(true)}
+        daysSinceBackup={daysSinceBackup}
+      />
 
       {/* Profile */}
       <Card>
@@ -406,20 +477,24 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Export */}
+      {/* Export & Import */}
       <Card className="mt-4">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Download className="size-4" aria-hidden /> Export Vault
+            <Download className="size-4" aria-hidden /> Backup & Restore
           </CardTitle>
           <CardDescription>
-            Download your vault as encrypted JSON or plaintext CSV.
+            Download or restore your encrypted vault backup.
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Button variant="outline" onClick={() => setExportOpen(true)} className="gap-2">
             <Download className="size-4" aria-hidden />
-            Export vault
+            Download backup
+          </Button>
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="gap-2">
+            <Upload className="size-4" aria-hidden />
+            Restore from backup
           </Button>
         </CardContent>
       </Card>
@@ -485,6 +560,13 @@ export default function SettingsPage() {
         destructive
         typeToConfirm="DELETE"
         onConfirm={onDeleteAccount}
+      />
+
+      {/* Import dialog */}
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImport={onImportVault}
       />
 
       {/* Export dialog */}
