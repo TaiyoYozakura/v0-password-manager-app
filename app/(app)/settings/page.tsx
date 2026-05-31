@@ -28,13 +28,14 @@ import {
 import {
   deleteAllPasswords,
   listPasswords,
-  savePassword,
+  createPassword,
 } from "@/lib/firebase/passwords"
-import { deleteAllPins, listPins, savePin } from "@/lib/firebase/pins"
+import { deleteAllPins, listPins, createPin } from "@/lib/firebase/pins"
 import {
   encryptWithPassphrase,
   generateSalt,
   hashPin,
+  deriveKey,
 } from "@/lib/crypto/encryption"
 import { getFirebase } from "@/lib/firebase/config"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -247,7 +248,7 @@ export default function SettingsPage() {
 
       // Import all passwords
       for (const p of passwords) {
-        await savePassword(user.uid, {
+        await createPassword(user.uid, {
           siteName: p.siteName,
           siteUrl: p.siteUrl,
           tag: p.tag,
@@ -260,7 +261,7 @@ export default function SettingsPage() {
 
       // Import all pins
       for (const pn of pins) {
-        await savePin(user.uid, {
+        await createPin(user.uid, {
           label: pn.label,
           category: pn.category,
           pin: pn.pin,
