@@ -58,6 +58,7 @@ import { ConfirmModal } from "@/components/vault/confirm-modal"
 import { ImportDialog } from "@/components/vault/import-dialog"
 import { BackupReminder } from "@/components/vault/backup-reminder"
 import { DuplicateCleanupDialog } from "@/components/vault/duplicate-cleanup-dialog"
+import { RecoveryStrategyGuide, RecoveryFAQ } from "@/components/vault/recovery-strategy-info"
 import Link from "next/link"
 import {
   Dialog,
@@ -574,6 +575,10 @@ export default function SettingsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Password Recovery & Best Practices */}
+      <RecoveryStrategyGuide />
+      <RecoveryFAQ />
 
       {/* Danger Zone */}
       <Card className="mt-4 border-destructive/40">

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import toast from "react-hot-toast"
-import { ShieldCheck, Lock, KeyRound } from "lucide-react"
+import { ShieldCheck, Lock, KeyRound, AlertCircle } from "lucide-react"
 import { useAuth } from "@/components/providers/auth-provider"
 import { signInWithGoogle } from "@/lib/firebase/auth"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { getFirebase } from "@/lib/firebase/config"
+import { RecoveryStrategyWarning } from "@/components/vault/recovery-strategy-info"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -95,48 +96,48 @@ export default function LoginPage() {
               </p>
             </div>
 
-      {!firebaseConfigured && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertTitle>Firebase not configured</AlertTitle>
-          <AlertDescription className="mt-2 space-y-2 text-sm">
-            <div>Add these environment variables to your Vercel project:</div>
-            <ul className="list-inside list-disc space-y-1 pl-2 font-mono text-xs">
-              <li>NEXT_PUBLIC_FIREBASE_API_KEY</li>
-              <li>NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN</li>
-              <li>NEXT_PUBLIC_FIREBASE_PROJECT_ID</li>
-              <li>NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET</li>
-              <li>NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID</li>
-              <li>NEXT_PUBLIC_FIREBASE_APP_ID</li>
-            </ul>
-            <div className="pt-2">
-              Then refresh this page.
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
+            {!firebaseConfigured && (
+              <Alert variant="destructive" className="mt-4">
+                <AlertTitle>Firebase not configured</AlertTitle>
+                <AlertDescription className="mt-2 space-y-2 text-sm">
+                  <div>Add these environment variables to your Vercel project:</div>
+                  <ul className="list-inside list-disc space-y-1 pl-2 font-mono text-xs">
+                    <li>NEXT_PUBLIC_FIREBASE_API_KEY</li>
+                    <li>NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN</li>
+                    <li>NEXT_PUBLIC_FIREBASE_PROJECT_ID</li>
+                    <li>NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET</li>
+                    <li>NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID</li>
+                    <li>NEXT_PUBLIC_FIREBASE_APP_ID</li>
+                  </ul>
+                  <div className="pt-2">
+                    Then refresh this page.
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
 
-      {firebaseConfigured && (
-        <Alert className="mt-4 border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100">
-          <AlertTitle>Setup checklist</AlertTitle>
-          <AlertDescription className="mt-2 space-y-2 text-sm">
-            <div>To use sign-in, make sure in Firebase Console:</div>
-            <ul className="list-inside list-disc space-y-1 pl-2">
-              <li>
-                <strong>Authentication</strong> → Sign-in method → Google is <strong>Enabled</strong>
-              </li>
-              <li>
-                <strong>Authentication</strong> → Settings → Authorized domains includes this domain
-              </li>
-              <li>
-                <strong>Firestore Database</strong> is created in production mode
-              </li>
-              <li>
-                <strong>Firestore Rules</strong> are published (copy from firestore.rules file)
-              </li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
+            {firebaseConfigured && (
+              <Alert className="mt-4 border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100">
+                <AlertTitle>Setup checklist</AlertTitle>
+                <AlertDescription className="mt-2 space-y-2 text-sm">
+                  <div>To use sign-in, make sure in Firebase Console:</div>
+                  <ul className="list-inside list-disc space-y-1 pl-2">
+                    <li>
+                      <strong>Authentication</strong> → Sign-in method → Google is <strong>Enabled</strong>
+                    </li>
+                    <li>
+                      <strong>Authentication</strong> → Settings → Authorized domains includes this domain
+                    </li>
+                    <li>
+                      <strong>Firestore Database</strong> is created in production mode
+                    </li>
+                    <li>
+                      <strong>Firestore Rules</strong> are published (copy from firestore.rules file)
+                    </li>
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
 
             <Button
               onClick={onSignIn}
@@ -159,24 +160,30 @@ export default function LoginPage() {
               {signingIn ? "Signing in..." : "Sign in with Google"}
             </Button>
 
-            <div className="grid gap-3 border-t border-border pt-5 text-sm">
-              <Feature
-                icon={<Lock className="size-4" aria-hidden />}
-                title="Zero-knowledge encryption"
-                body="Your encryption key is derived on your device and never leaves it."
-              />
-              <Feature
-                icon={<KeyRound className="size-4" aria-hidden />}
-                title="App Lock & auto-logout"
-                body="4-digit PIN lock, idle auto-logout, and 30-second clipboard auto-clear."
-              />
-            </div>
+            {firebaseConfigured && (
+              <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900 dark:bg-amber-950/20">
+                <div className="flex gap-3">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-500 mt-0.5" aria-hidden />
+                  <div className="flex-1 text-xs">
+                    <p className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                      Master Password Cannot Be Recovered
+                    </p>
+                    <p className="text-amber-800/80 dark:text-amber-200/70 leading-relaxed">
+                      Your master password is the only key to your vault. We cannot reset it if forgotten. Create and store encrypted backups regularly to ensure you can recover your data if needed.
+                    </p>
+                    <a href="/docs/recovery-strategy" className="text-amber-700 dark:text-amber-300 hover:underline text-xs font-medium mt-2 inline-block">
+                      Learn recovery options →
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <p className="mt-6 text-center text-xs text-muted-foreground">
+              Protected by Firebase Authentication. Data encrypted client-side before sync.
+            </p>
           </CardContent>
         </Card>
-
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Protected by Firebase Authentication. Data encrypted client-side before sync.
-        </p>
       </div>
     </main>
   )
