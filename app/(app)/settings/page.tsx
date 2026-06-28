@@ -17,6 +17,7 @@ import {
   Clock,
   ArrowLeft,
   UserX,
+  Zap,
 } from "lucide-react"
 import { useAuth } from "@/components/providers/auth-provider"
 import {
@@ -31,6 +32,7 @@ import {
   createPassword,
 } from "@/lib/firebase/passwords"
 import { deleteAllPins, listPins, createPin } from "@/lib/firebase/pins"
+import { findDuplicatePasswords, findDuplicatePins } from "@/lib/utils/duplicates"
 import {
   encryptWithPassphrase,
   generateSalt,
@@ -55,6 +57,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { ConfirmModal } from "@/components/vault/confirm-modal"
 import { ImportDialog } from "@/components/vault/import-dialog"
 import { BackupReminder } from "@/components/vault/backup-reminder"
+import { DuplicateCleanupDialog } from "@/components/vault/duplicate-cleanup-dialog"
 import Link from "next/link"
 import {
   Dialog,
@@ -91,6 +94,12 @@ export default function SettingsPage() {
   // Backup reminder
   const [daysSinceBackup, setDaysSinceBackup] = useState<number | undefined>()
 
+  // Duplicate cleanup
+  const [duplicateCleanupOpen, setDuplicateCleanupOpen] = useState(false)
+  const [duplicateStats, setDuplicateStats] = useState({ passwords: 0, pins: 0 })
+  const [pwdDuplicates, setPwdDuplicates] = useState<any[]>([])
+  const [pinDuplicates, setPinDuplicates] = useState<any[]>([])
+
   // Danger zone
   const [showDeletePasswords, setShowDeletePasswords] = useState(false)
   const [showDeletePins, setShowDeletePins] = useState(false)
@@ -110,6 +119,33 @@ export default function SettingsPage() {
   useEffect(() => {
     setAutoLogout(String(profile?.autoLogoutMinutes ?? 15))
   }, [profile?.autoLogoutMinutes])
+
+  // Check for duplicates when data loads
+  useEffect(() => {
+    const checkDuplicates = async () => {
+      if (!user || !key) return
+      try {
+        const [passwords, pins] = await Promise.all([
+          listPasswords(user.uid, key),
+          listPins(user.uid, key),
+        ])
+
+        const pwdDupes = findDuplicatePasswords(passwords)
+        const pinDupes = findDuplicatePins(pins)
+
+        const pwdCount = pwdDupes.reduce((sum, g) => sum + (g.count - 1), 0)
+        const pinCount = pinDupes.reduce((sum, g) => sum + (g.count - 1), 0)
+
+        setPwdDuplicates(pwdDupes)
+        setPinDuplicates(pinDupes)
+        setDuplicateStats({ passwords: pwdCount, pins: pinCount })
+      } catch (err) {
+        console.error("[v0] Duplicate check error:", err)
+      }
+    }
+
+    checkDuplicates()
+  }, [user?.uid, key])
 
   const onChangePin = async () => {
     if (!user || !profile?.appLockPinHash || !profile.appLockPinSalt) return
@@ -500,6 +536,45 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Clean up duplicates */}
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Zap className="size-4" aria-hidden /> Clean up duplicates
+          </CardTitle>
+          <CardDescription>Remove exact duplicate passwords and PINs.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {duplicateStats.passwords + duplicateStats.pins > 0 ? (
+            <div className="mb-3 space-y-1 text-sm">
+              {duplicateStats.passwords > 0 && (
+                <p>
+                  <strong>{duplicateStats.passwords}</strong> duplicate password
+                  {duplicateStats.passwords !== 1 ? "s" : ""}
+                </p>
+              )}
+              {duplicateStats.pins > 0 && (
+                <p>
+                  <strong>{duplicateStats.pins}</strong> duplicate PIN
+                  {duplicateStats.pins !== 1 ? "s" : ""}
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="mb-3 text-sm text-muted-foreground">No duplicates found in your vault.</p>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => setDuplicateCleanupOpen(true)}
+            disabled={duplicateStats.passwords + duplicateStats.pins === 0}
+            className="gap-2"
+          >
+            <Zap className="size-4" aria-hidden />
+            Clean up now
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Danger Zone */}
       <Card className="mt-4 border-destructive/40">
         <CardHeader>
@@ -605,6 +680,22 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate cleanup */}
+      {user && (
+        <DuplicateCleanupDialog
+          open={duplicateCleanupOpen}
+          onOpenChange={setDuplicateCleanupOpen}
+          passwordDuplicates={pwdDuplicates}
+          pinDuplicates={pinDuplicates}
+          userId={user.uid}
+          onCleanupComplete={() => {
+            setDuplicateStats({ passwords: 0, pins: 0 })
+            setPwdDuplicates([])
+            setPinDuplicates([])
+          }}
+        />
+      )}
 
       <p className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
         <Trash2 className="size-3.5" aria-hidden />
