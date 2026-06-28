@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import toast from "react-hot-toast"
-import { ShieldCheck, Lock, KeyRound } from "lucide-react"
+import { ShieldCheck, Lock, KeyRound, AlertCircle, Zap, Eye, Clock } from "lucide-react"
 import { useAuth } from "@/components/providers/auth-provider"
 import { signInWithGoogle } from "@/lib/firebase/auth"
 import { Button } from "@/components/ui/button"
@@ -76,121 +76,132 @@ export default function LoginPage() {
       </div>
 
       <div className="relative w-full max-w-md">
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <ShieldCheck className="size-5" aria-hidden />
+        {/* Logo Section */}
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <div className="flex size-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg">
+            <ShieldCheck className="size-6" aria-hidden />
           </div>
-          <span className="text-2xl font-semibold tracking-tight">Vaultly</span>
+          <div className="text-center">
+            <h2 className="text-3xl font-bold tracking-tight">Vaultly</h2>
+            <p className="text-xs text-muted-foreground mt-1">Your secrets, your control</p>
+          </div>
         </div>
 
-        <Card className="border-border/80 shadow-xl">
+        <Card className="border-border/80 shadow-xl overflow-hidden">
           <CardContent className="flex flex-col gap-6 p-6 sm:p-8">
-            <div className="flex flex-col gap-2 text-center">
-              <h1 className="text-pretty text-2xl font-semibold tracking-tight">
-                Your private vault for passwords and PINs
+            {/* Main Heading */}
+            <div className="flex flex-col gap-3 text-center">
+              <h1 className="text-pretty text-2xl font-bold tracking-tight">
+                Keep your passwords safe
               </h1>
               <p className="text-pretty text-sm text-muted-foreground leading-relaxed">
-                Everything you save is encrypted with AES-256 on your device before it ever
-                touches the cloud. Only you can read it.
+                End-to-end encrypted vault that only you can access. Sign in to get started.
               </p>
             </div>
 
-      {!firebaseConfigured && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertTitle>Firebase not configured</AlertTitle>
-          <AlertDescription className="mt-2 space-y-2 text-sm">
-            <div>Add these environment variables to your Vercel project:</div>
-            <ul className="list-inside list-disc space-y-1 pl-2 font-mono text-xs">
-              <li>NEXT_PUBLIC_FIREBASE_API_KEY</li>
-              <li>NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN</li>
-              <li>NEXT_PUBLIC_FIREBASE_PROJECT_ID</li>
-              <li>NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET</li>
-              <li>NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID</li>
-              <li>NEXT_PUBLIC_FIREBASE_APP_ID</li>
-            </ul>
-            <div className="pt-2">
-              Then refresh this page.
+            {/* Features Grid */}
+            <div className="grid grid-cols-3 gap-3 py-2">
+              <Feature
+                icon={<Lock className="size-4" />}
+                title="AES-256"
+                desc="Military-grade encryption"
+              />
+              <Feature
+                icon={<Eye className="size-4" />}
+                title="Private"
+                desc="Only you hold the key"
+              />
+              <Feature
+                icon={<Zap className="size-4" />}
+                title="Fast"
+                desc="Instant access"
+              />
             </div>
-          </AlertDescription>
-        </Alert>
-      )}
 
-      {firebaseConfigured && (
-        <Alert className="mt-4 border-blue-200 bg-blue-50 text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-100">
-          <AlertTitle>Setup checklist</AlertTitle>
-          <AlertDescription className="mt-2 space-y-2 text-sm">
-            <div>To use sign-in, make sure in Firebase Console:</div>
-            <ul className="list-inside list-disc space-y-1 pl-2">
-              <li>
-                <strong>Authentication</strong> → Sign-in method → Google is <strong>Enabled</strong>
-              </li>
-              <li>
-                <strong>Authentication</strong> → Settings → Authorized domains includes this domain
-              </li>
-              <li>
-                <strong>Firestore Database</strong> is created in production mode
-              </li>
-              <li>
-                <strong>Firestore Rules</strong> are published (copy from firestore.rules file)
-              </li>
-            </ul>
-          </AlertDescription>
-        </Alert>
-      )}
-
+            {/* Sign In Button */}
             <Button
               onClick={onSignIn}
               disabled={signingIn || !firebaseConfigured}
-              className="h-11 w-full gap-3 text-sm font-medium"
+              className="h-12 w-full gap-2 text-base font-medium mt-2"
               size="lg"
             >
               {signingIn ? (
-                <Spinner className="size-4" />
+                <>
+                  <Spinner className="size-4" />
+                  Signing in...
+                </>
               ) : (
-                <Image
-                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                  alt=""
-                  width={18}
-                  height={18}
-                  aria-hidden
-                  unoptimized
-                />
+                <>
+                  <Image
+                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                    alt=""
+                    width={18}
+                    height={18}
+                    aria-hidden
+                    unoptimized
+                  />
+                  Continue with Google
+                </>
               )}
-              {signingIn ? "Signing in..." : "Sign in with Google"}
             </Button>
 
-            <div className="grid gap-3 border-t border-border pt-5 text-sm">
-              <Feature
-                icon={<Lock className="size-4" aria-hidden />}
-                title="Zero-knowledge encryption"
-                body="Your encryption key is derived on your device and never leaves it."
-              />
-              <Feature
-                icon={<KeyRound className="size-4" aria-hidden />}
-                title="App Lock & auto-logout"
-                body="4-digit PIN lock, idle auto-logout, and 30-second clipboard auto-clear."
-              />
+            {/* Error Alert */}
+            {!firebaseConfigured && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Configuration needed</AlertTitle>
+                <AlertDescription className="text-xs mt-1">
+                  Please set up Firebase environment variables. Contact support if you need help.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Security Note */}
+            <div className="rounded-lg border border-border/50 bg-secondary/30 p-3 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-500 mt-0.5" aria-hidden />
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-foreground">
+                    Master Password is Your Only Key
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    We can&apos;t recover it if lost. Keep it safe and consider storing an encrypted backup.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex flex-col gap-2 text-center">
+              <p className="text-xs text-muted-foreground">
+                Your data stays encrypted on your device
+              </p>
+              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                <Clock className="size-3" aria-hidden />
+                <span>Takes less than 1 minute to get started</span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Protected by Firebase Authentication. Data encrypted client-side before sync.
+        {/* Trust Footer */}
+        <p className="mt-6 text-center text-xs text-muted-foreground px-4">
+          No passwords sent to us • No ads • No tracking • Open source
         </p>
       </div>
     </main>
   )
 }
 
-function Feature({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+function Feature({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 flex size-7 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+    <div className="flex flex-col items-center gap-2 p-3 rounded-lg border border-border/50 bg-background hover:bg-secondary/50 transition-colors">
+      <div className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
         {icon}
       </div>
-      <div className="flex flex-col">
-        <span className="font-medium">{title}</span>
-        <span className="text-muted-foreground">{body}</span>
+      <div className="flex flex-col text-center">
+        <span className="text-xs font-semibold">{title}</span>
+        <span className="text-xs text-muted-foreground">{desc}</span>
       </div>
     </div>
   )
