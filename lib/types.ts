@@ -7,6 +7,7 @@ export interface EncryptedPasswordDoc {
   encryptedNotes: string
   integrityHash: string
   tag: string
+  tagIconUrl?: string // Custom favicon data URL for non-standard tags
   siteUrl: string
   siteName: string
   createdAt: Timestamp | null
@@ -18,6 +19,7 @@ export interface DecryptedPasswordEntry {
   siteName: string
   siteUrl: string
   tag: string
+  tagIconUrl?: string // Custom favicon data URL for non-standard tags
   password: string
   username: string
   email: string
