@@ -1,0 +1,13 @@
+{
+  "name": "vaultly-mobile",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Mobile app development'",
+    "build": "echo 'Building mobile app'"
+  },
+  "dependencies": {
+    "react": "^19",
+    "react-native": "^0.85.1"
+  }
+}
