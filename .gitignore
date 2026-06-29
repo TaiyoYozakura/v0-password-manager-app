@@ -7,10 +7,40 @@ __v0_jsx-dev-runtime.ts
 .vercel/
 next.user-config.*
 
-# Environment variables
-.env*.local
+# Environment variables - CRITICAL: Never commit secrets
+.env
+.env.local
+.env.*.local
+.env.production.local
+.env.development.local
 
-# Common ignores
-node_modules
+# Firebase & sensitive credentials
+firebase-adminsdk*.json
+serviceAccountKey.json
+.firebase/
+
+# Build outputs & artifacts
+dist/
+build/
 .next/
+out/
+*.tgz
+*.zip
+release/
+
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+yarn.lock
+
+# OS files
 .DS_Store
+Thumbs.db
+.vscode/settings.json
+
+# Development files
+.env.development
+*.log
+npm-debug.log*
+yarn-debug.log*
+.github/workflows/

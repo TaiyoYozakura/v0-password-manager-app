@@ -393,3 +393,164 @@ Built with:
 ---
 
 **Vaultly v2.0.0** - A password manager that respects your privacy.
+
+---
+
+## Repository Structure (Monorepo)
+
+```
+Vaultly/
+├── web/                         # Next.js Web Application (Next.js 16)
+│   ├── app/                     # App Router pages and API routes
+│   ├── components/              # React components (UI + features)
+│   ├── public/                  # Static assets
+│   └── styles/                  # Global CSS and Tailwind config
+│
+├── extension/                   # Browser Extension (Manifest V3)
+│   ├── manifest.json
+│   ├── background/              # Service worker
+│   ├── content/                 # Content scripts
+│   ├── popup/                   # Extension popup UI
+│   └── icons/                   # Extension icons
+│
+├── mobileapp/                   # Future Mobile App (React Native)
+│   └── (Placeholder for v3)
+│
+├── shared/                      # Shared Business Logic
+│   ├── crypto/                  # Encryption/Decryption
+│   ├── firebase/                # Database & Auth
+│   ├── api/                     # API clients
+│   ├── stores/                  # Zustand stores
+│   ├── types/                   # TypeScript types
+│   └── utils/                   # Utilities
+│
+├── scripts/                     # Build & Release Scripts
+│   ├── build-extension.js       # Build extension to dist/
+│   └── package-extension.js     # Create ZIP & TAR.GZ
+│
+├── .github/
+│   └── workflows/
+│       └── release.yml          # Automated GitHub Releases
+│
+├── release/                     # Release Artifacts (Git ignored)
+│   ├── Vaultly-Extension-v2.0.0.zip
+│   └── Vaultly-Extension-v2.0.0.tar.gz
+│
+├── docs/                        # Documentation
+├── pnpm-workspace.yaml          # Workspace configuration
+└── package.json                 # Root package.json
+```
+
+---
+
+## Build & Release Commands
+
+### Development
+```bash
+# Web app development
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+### Extension Packaging
+```bash
+# Build extension
+node scripts/build-extension.js
+
+# Package ZIP and TAR.GZ
+node scripts/package-extension.js
+
+# Full release pipeline
+npm run release
+```
+
+### GitHub Releases (Automated)
+Push a version tag to trigger automatic release:
+```bash
+git tag v2.1.0
+git push origin v2.1.0
+```
+
+This automatically:
+1. Builds the extension
+2. Creates ZIP and TAR.GZ packages
+3. Uploads to GitHub Releases as assets
+
+---
+
+## Deployment
+
+### Web Application
+Deploy to Vercel:
+```bash
+vercel deploy
+```
+
+### Browser Extension
+1. Build: `node scripts/build-extension.js`
+2. Package: `node scripts/package-extension.js`
+3. Upload to Chrome Web Store/Edge Add-ons
+
+---
+
+## Development Workflow
+
+### 1. Development
+```bash
+pnpm dev                    # Start web app
+node scripts/build-extension.js  # Build extension
+```
+
+### 2. Testing
+- Web: `http://localhost:3000`
+- Extension: Load `extension/dist/` via "Load unpacked"
+
+### 3. Release
+```bash
+# Update version in package.json
+git add .
+git commit -m "v2: release(core): version bump to 2.1.0"
+git tag v2.1.0
+git push origin main v2.1.0    # GitHub Actions handles the rest
+```
+
+---
+
+## Sensitive Data & Security
+
+All sensitive files are protected by `.gitignore`:
+- `.env*` - Environment variables (never committed)
+- `firebase-adminsdk*.json` - Service account keys
+- `release/` - Build artifacts
+
+**Important**: Never commit `.env` files or Firebase credentials.
+
+---
+
+## FAQ
+
+**Q: How do I add a new dependency?**
+A: Install in root: `pnpm add package-name`
+
+**Q: Can I use the extension separately?**
+A: Yes. After building (`npm run build:extension`), extract `release/Vaultly-Extension-vX.X.X.zip` and load in your browser.
+
+**Q: How do I contribute?**
+A: Fork the repo, create a feature branch, and submit a PR following the v2 commit convention.
+
+---
+
+## License
+
+MIT License - See LICENSE file for details
+
+## Support
+
+Found a bug? Open an issue on GitHub. Have questions? Check the documentation.
+
+**Made with ❤️ for privacy-conscious users**
