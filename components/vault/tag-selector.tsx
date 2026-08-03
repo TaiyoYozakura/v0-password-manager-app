@@ -2,20 +2,23 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { getTagIcon, getCommonTags } from "@/lib/utils/tag-icons"
+import { getTagIcon, getCommonTags, hasTagIcon } from "@/lib/utils/tag-icons"
 import { cn } from "@/lib/utils"
 import { X, Search } from "lucide-react"
+import { CustomTagIconDialog } from "./custom-tag-icon-dialog"
 
 interface Props {
   tags: string[]
   value: string
-  onSelect: (tag: string) => void
+  onSelect: (tag: string, iconUrl?: string) => void
   className?: string
 }
 
 export function TagSelector({ tags, value, onSelect, className }: Props) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
+  const [showIconDialog, setShowIconDialog] = useState(false)
+  const [pendingTag, setPendingTag] = useState<string | null>(null)
 
   const commonTags = getCommonTags()
   
@@ -49,8 +52,17 @@ export function TagSelector({ tags, value, onSelect, className }: Props) {
               variant="ghost"
               onClick={() => {
                 if (search.trim()) {
-                  onSelect(search.trim())
-                  setSearch("")
+                  const trimmedTag = search.trim()
+                  // Check if it's a standard tag or a custom one
+                  if (hasTagIcon(trimmedTag)) {
+                    // Standard tag - use directly
+                    onSelect(trimmedTag)
+                    setSearch("")
+                  } else {
+                    // Custom tag - show dialog to get favicon
+                    setPendingTag(trimmedTag)
+                    setShowIconDialog(true)
+                  }
                 }
               }}
             >
@@ -167,6 +179,23 @@ export function TagSelector({ tags, value, onSelect, className }: Props) {
         <div
           className="fixed inset-0 z-40"
           onClick={() => setOpen(false)}
+        />
+      )}
+
+      {/* Custom Icon Dialog */}
+      {pendingTag && (
+        <CustomTagIconDialog
+          tagName={pendingTag}
+          open={showIconDialog}
+          onOpenChange={setShowIconDialog}
+          onIconSelected={(iconUrl) => {
+            if (pendingTag) {
+              onSelect(pendingTag, iconUrl || undefined)
+              setSearch("")
+              setOpen(false)
+              setPendingTag(null)
+            }
+          }}
         />
       )}
     </div>

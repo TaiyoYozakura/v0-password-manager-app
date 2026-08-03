@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
+import { TagSelector } from "@/components/vault/tag-selector"
 
 interface Props {
   mode: "create" | "edit"
@@ -54,6 +55,7 @@ export function PasswordForm({ mode, id }: Props) {
   const [password, setPassword] = useState("")
   const [tag, setTag] = useState<string>("Other")
   const [customTag, setCustomTag] = useState("")
+  const [tagIconUrl, setTagIconUrl] = useState<string | undefined>()
   const [usingCustomTag, setUsingCustomTag] = useState(false)
   const [notes, setNotes] = useState("")
 
@@ -156,6 +158,7 @@ export function PasswordForm({ mode, id }: Props) {
       siteName: sanitizeText(siteName, LIMITS.siteName),
       siteUrl: sanitizeText(siteUrl, LIMITS.url),
       tag: finalTag,
+      tagIconUrl: tagIconUrl,
       password: sanitizeSecret(password, LIMITS.password),
       username: sanitizeText(username, LIMITS.username),
       email: sanitizeText(email, LIMITS.email),
@@ -381,41 +384,24 @@ export function PasswordForm({ mode, id }: Props) {
           {/* Tag */}
           <div className="grid gap-2">
             <Label>Tag</Label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              {!usingCustomTag ? (
-                <Select value={tag} onValueChange={setTag}>
-                  <SelectTrigger className="sm:w-[240px]">
-                    <SelectValue placeholder="Select tag" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tagOptions.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  value={customTag}
-                  onChange={(e) => setCustomTag(e.target.value)}
-                  placeholder="Type a new tag"
-                  maxLength={LIMITS.tag}
-                  className="sm:w-[240px]"
-                />
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setUsingCustomTag((v) => !v)
-                  if (usingCustomTag) setCustomTag("")
-                }}
-              >
-                {usingCustomTag ? "Pick existing" : "Create new tag"}
-              </Button>
-            </div>
+            <TagSelector
+              tags={tagOptions}
+              value={usingCustomTag ? customTag : tag}
+              onSelect={(selectedTag, iconUrl) => {
+                // Check if it's in existing tags or is new
+                const isExisting = tagOptions.includes(selectedTag)
+                if (isExisting) {
+                  setTag(selectedTag)
+                  setUsingCustomTag(false)
+                  setTagIconUrl(undefined)
+                } else {
+                  setCustomTag(selectedTag)
+                  setUsingCustomTag(true)
+                  setTagIconUrl(iconUrl)
+                }
+              }}
+              className="relative z-10"
+            />
           </div>
 
           {/* Notes */}
