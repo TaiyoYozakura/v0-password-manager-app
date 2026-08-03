@@ -82,7 +82,7 @@ export default function PasswordDetailScreen({ route, navigation }: any) {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.tagBadge}>
-          <Ionicons name="lock" size={32} color="#fff" />
+          <Ionicons name="lock-closed" size={32} color="#fff" />
         </View>
         <Text style={styles.siteName}>{password.siteName}</Text>
         <Text style={styles.tag}>{password.tag}</Text>

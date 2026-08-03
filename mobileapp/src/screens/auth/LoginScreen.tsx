@@ -20,7 +20,7 @@ export default function LoginScreen({ navigation }: any) {
   const { setUser, setSessionToken } = useAuthStore()
   const [request, response, promptAsync] = Google.useAuthRequest({
     clientId: process.env.EXPO_PUBLIC_FIREBASE_CLIENT_ID,
-    redirectUrl: 'com.vaultly.app://',
+    redirectUri: 'com.vaultly.app://',
   })
 
   React.useEffect(() => {

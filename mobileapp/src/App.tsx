@@ -29,7 +29,6 @@ function AuthStack() {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        cardStyle: { backgroundColor: '#fff' },
       }}
     >
       <Stack.Screen name="Login" component={LoginScreen} />
@@ -39,7 +38,7 @@ function AuthStack() {
         component={MasterPinSetupScreen}
         options={{
           animationEnabled: false,
-        }}
+        } as any}
       />
     </Stack.Navigator>
   )
@@ -50,7 +49,6 @@ function MasterPinStack() {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        cardStyle: { backgroundColor: '#fff' },
       }}
     >
       <Stack.Screen
@@ -58,7 +56,7 @@ function MasterPinStack() {
         component={MasterPinUnlockScreen}
         options={{
           animationEnabled: false,
-        }}
+        } as any}
       />
     </Stack.Navigator>
   )

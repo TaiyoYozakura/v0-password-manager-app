@@ -1,6 +1,9 @@
 // Jest setup file for Vaultly mobile tests
 // This file is loaded before any test runs
 
+// @ts-nocheck
+import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals'
+
 // Mock Firebase
 jest.mock('../services/firebase', () => ({
   initializeFirebase: jest.fn(),
@@ -35,23 +38,3 @@ jest.mock('../stores/vaultStore', () => ({
     getFilteredPasswords: jest.fn(() => []),
   })),
 }))
-
-// Suppress console errors in tests
-const originalError = console.error
-beforeAll(() => {
-  console.error = (...args: any[]) => {
-    if (
-      typeof args[0] === 'string' &&
-      (args[0].includes('Warning: ReactDOM.render') ||
-        args[0].includes('Not implemented: HTMLFormElement.prototype.submit') ||
-        args[0].includes('act()'))
-    ) {
-      return
-    }
-    originalError.call(console, ...args)
-  }
-})
-
-afterAll(() => {
-  console.error = originalError
-})

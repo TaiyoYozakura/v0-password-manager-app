@@ -82,7 +82,7 @@ export default function SettingsScreen({ navigation }: any) {
         <Text style={styles.sectionTitle}>Security</Text>
 
         <View style={styles.settingRow}>
-          <Ionicons name="lock" size={24} color="#8b5cf6" />
+          <Ionicons name="lock-closed" size={24} color="#8b5cf6" />
           <View style={styles.settingContent}>
             <Text style={styles.settingTitle}>Auto-lock Timeout</Text>
             <Text style={styles.settingSubtitle}>{autoLockTimeout} minutes</Text>

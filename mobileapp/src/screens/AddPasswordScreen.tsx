@@ -49,13 +49,13 @@ export default function AddPasswordScreen({ navigation }: any) {
         password,
         notes: notes.trim(),
         tag,
-        tagIconUrl: null,
+        tagIconUrl: null as any,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
 
-      await createPassword(user.uid, newPassword)
-      addPassword(newPassword)
+      await createPassword(user.uid, newPassword as any)
+      addPassword(newPassword as any)
       Alert.alert('Success', 'Password saved')
       navigation.goBack()
     } catch (error) {

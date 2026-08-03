@@ -1,263 +1,90 @@
-import {
-  Chrome,
-  Github,
-  Mail,
-  ShoppingCart,
-  Code2,
-  Building2,
-  Briefcase,
-  Music,
-  Film,
-  DollarSign,
-  CreditCard,
-  Globe,
-  Cloud,
-  Server,
-  Database,
-  Lock,
-  Shield,
-  Smartphone,
-  Tablet,
-  Watch,
-  GamepadIcon,
-  Headphones,
-  Camera,
-  Map,
-  Navigation,
-  Zap,
-  Twitter,
-  Facebook,
-  Instagram,
-  Linkedin,
-  MessageCircle,
-  AtSign,
-  Search,
-  Activity,
-  BarChart3,
-  File,
-  FileText,
-  Download,
-  Upload,
-  Share2,
-  Settings,
-  Tool,
-  HelpCircle,
-  AlertCircle,
-  CheckCircle2,
-} from "lucide-react"
-
-export type TagIcon = React.ComponentType<{ className?: string }>
-
-interface TagIconMap {
-  [key: string]: TagIcon
-}
-
-// Common website and app names mapped to icons
-const TAG_ICON_MAP: TagIconMap = {
+// Mobile-friendly tag icon mapping (using Ionicons icon names)
+export const TAG_ICON_MAP: Record<string, string> = {
   // Tech/Developer Tools
-  github: Github,
-  git: Github,
-  gitlab: Code2,
-  bitbucket: Code2,
-  aws: Cloud,
-  azure: Cloud,
-  "google cloud": Cloud,
-  heroku: Cloud,
-  vercel: Cloud,
-  netlify: Cloud,
-  "digital ocean": Cloud,
-  docker: Container,
-  kubernetes: Server,
-  terraform: Server,
-  jenkins: Server,
-  github: Github,
-  gitlab: Code2,
-  notion: FileText,
-  jira: Settings,
-  confluence: FileText,
-  slack: MessageCircle,
-  discord: MessageCircle,
-  teams: MessageCircle,
+  github: 'logo-github',
+  git: 'git-branch',
+  gitlab: 'code-slash',
+  aws: 'cloud',
+  azure: 'cloud',
+  docker: 'layers',
+  kubernetes: 'server',
   
   // Email & Communication
-  gmail: Mail,
-  outlook: Mail,
-  yahoo: Mail,
-  protonmail: Mail,
-  "google mail": Mail,
-  tutanota: Mail,
+  gmail: 'mail',
+  outlook: 'mail',
+  email: 'mail',
+  protonmail: 'mail',
   
   // Shopping & Commerce
-  amazon: ShoppingCart,
-  ebay: ShoppingCart,
-  etsy: ShoppingCart,
-  flipkart: ShoppingCart,
-  alibaba: ShoppingCart,
-  shopify: ShoppingCart,
+  amazon: 'bag',
+  ebay: 'bag',
+  etsy: 'bag',
+  shopify: 'bag',
   
   // Social Media
-  facebook: Facebook,
-  instagram: Instagram,
-  twitter: Twitter,
-  x: Twitter,
-  linkedin: Linkedin,
-  tiktok: Music,
-  snapchat: Camera,
-  telegram: MessageCircle,
-  whatsapp: MessageCircle,
-  viber: MessageCircle,
-  signal: MessageCircle,
+  facebook: 'logo-facebook',
+  instagram: 'logo-instagram',
+  twitter: 'logo-twitter',
+  x: 'logo-twitter',
+  linkedin: 'logo-linkedin',
+  discord: 'logo-discord',
+  slack: 'logo-slack',
+  tiktok: 'logo-tiktok',
+  snapchat: 'logo-snapchat',
+  telegram: 'send',
+  whatsapp: 'logo-whatsapp',
   
-  // Banking & Finance
-  bank: DollarSign,
-  banking: DollarSign,
-  paypal: CreditCard,
-  stripe: CreditCard,
-  square: CreditCard,
-  wise: DollarSign,
-  revolut: DollarSign,
-  coinbase: DollarSign,
-  kraken: DollarSign,
-  binance: DollarSign,
+  // Finance & Banking
+  stripe: 'card',
+  paypal: 'logo-paypal',
+  square: 'grid',
+  crypto: 'wallet',
+  bitcoin: 'logo-bitcoin',
+  ethereum: 'logo-ethereum',
   
-  // Entertainment
-  netflix: Film,
-  disney: Film,
-  "disney plus": Film,
-  hulu: Film,
-  "amazon prime": Film,
-  spotify: Music,
-  apple: Music,
-  "apple music": Music,
-  youtube: Film,
-  twitch: Film,
-  steam: GamepadIcon,
-  playstation: GamepadIcon,
-  xbox: GamepadIcon,
-  nintendo: GamepadIcon,
+  // Streaming & Media
+  netflix: 'play-circle',
+  spotify: 'musical-note',
+  youtube: 'logo-youtube',
+  disney: 'play-circle',
+  hulu: 'film',
   
-  // Productivity & Office
-  microsoft: Settings,
-  excel: FileText,
-  word: FileText,
-  "google docs": FileText,
-  "google sheets": FileText,
-  "google drive": Cloud,
-  dropbox: Cloud,
-  onedrive: Cloud,
-  "icloud": Cloud,
+  // Work & Productivity
+  notion: 'document-text',
+  asana: 'checkmark-done',
+  jira: 'checkmark-done',
+  monday: 'calendar',
+  hubspot: 'send',
+  salesforce: 'trending-up',
   
-  // Mobile & Devices
-  apple: Smartphone,
-  google: Smartphone,
-  samsung: Smartphone,
-  iphone: Smartphone,
-  android: Smartphone,
-  ipad: Tablet,
-  
-  // Security & Privacy
-  "1password": Lock,
-  "last pass": Lock,
-  lastpass: Lock,
-  bitwarden: Lock,
-  dashlane: Lock,
-  keepass: Lock,
-  nordvpn: Shield,
-  expressvpn: Shield,
-  surfshark: Shield,
-  mullvad: Shield,
-  protonvpn: Shield,
-  
-  // Search & Navigation
-  google: Search,
-  bing: Search,
-  duckduckgo: Search,
-  maps: Map,
-  "google maps": Map,
-  
-  // Default categories
-  work: Briefcase,
-  personal: Shield,
-  social: MessageCircle,
-  shopping: ShoppingCart,
-  banking: DollarSign,
-  entertainment: Film,
-  education: Book,
-  health: Activity,
-  other: Globe,
-  
-  // Variants
-  microsoft365: Settings,
-  "m365": Settings,
-  office365: Settings,
-  "google account": Chrome,
-  "google": Chrome,
+  // Default
+  other: 'lock',
+  work: 'briefcase',
+  personal: 'person',
+  finance: 'card',
+  shopping: 'bag',
+  social: 'share-social',
+  security: 'shield',
 }
 
-/**
- * Get the icon component for a tag name
- * Returns a Lucide icon component or the Globe icon as fallback
- */
-export function getTagIcon(tagName: string): TagIcon {
-  if (!tagName) return Globe
-  
-  // Normalize the tag name for lookup
-  const normalized = tagName.toLowerCase().trim()
-  
-  // Check for exact match
-  if (TAG_ICON_MAP[normalized]) {
-    return TAG_ICON_MAP[normalized]
-  }
-  
-  // Check for partial match (e.g., "Microsoft Teams" matches "teams")
-  for (const [key, icon] of Object.entries(TAG_ICON_MAP)) {
-    if (normalized.includes(key) || key.includes(normalized)) {
-      return icon
-    }
-  }
-  
-  // Return default Globe icon for unknown tags
-  return Globe
+export function getTagIcon(tagName: string): string {
+  if (!tagName) return 'lock'
+  const lowerTag = tagName.toLowerCase().trim()
+  return TAG_ICON_MAP[lowerTag] || 'lock'
 }
 
-/**
- * Check if a tag has a specific icon mapping
- */
-export function hasTagIcon(tagName: string): boolean {
-  if (!tagName) return false
-  const normalized = tagName.toLowerCase().trim()
-  
-  if (TAG_ICON_MAP[normalized]) return true
-  
-  for (const key of Object.keys(TAG_ICON_MAP)) {
-    if (normalized.includes(key) || key.includes(normalized)) {
-      return true
-    }
+export function getTagColor(tagName: string): string {
+  const colors: Record<string, string> = {
+    work: '#3b82f6',
+    personal: '#8b5cf6',
+    finance: '#ec4899',
+    security: '#ef4444',
+    shopping: '#f97316',
+    social: '#06b6d4',
+    health: '#10b981',
+    entertainment: '#f59e0b',
   }
   
-  return false
+  const lowerTag = tagName.toLowerCase().trim()
+  return colors[lowerTag] || '#8b5cf6'
 }
-
-/**
- * Get all available tag suggestions with icons
- */
-export function getCommonTags(): Array<{ name: string; icon: TagIcon }> {
-  const seen = new Set<string>()
-  const tags: Array<{ name: string; icon: TagIcon }> = []
-  
-  for (const [name, icon] of Object.entries(TAG_ICON_MAP)) {
-    // Skip variations and only include main tags
-    if (!seen.has(name)) {
-      seen.add(name)
-      // Capitalize first letter for display
-      const displayName = name.charAt(0).toUpperCase() + name.slice(1)
-      tags.push({ name: displayName, icon })
-    }
-  }
-  
-  return tags.sort((a, b) => a.name.localeCompare(b.name))
-}
-
-// Import icon that was missing from initial imports
-const Container = Code2 // Placeholder for Docker container
-const Book = FileText // Placeholder for Education icon

@@ -1,38 +1,43 @@
 import { create } from 'zustand'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import type { DecryptedPasswordEntry, PinEntry, Note } from '../types'
+import type { DecryptedPasswordEntry } from '../types'
+
+interface PasswordItem {
+  id: string
+  siteName: string
+  username?: string
+  email?: string
+  password: string
+  notes?: string
+  tag: string
+  tagIconUrl?: string | null
+  createdAt: string
+  updatedAt: string
+}
 
 interface VaultState {
-  passwords: DecryptedPasswordEntry[]
-  pins: PinEntry[]
-  notes: Note[]
+  passwords: PasswordItem[]
   searchQuery: string
   selectedTag: string | null
   isLoading: boolean
   error: string | null
 
-  setPasswords: (passwords: DecryptedPasswordEntry[]) => void
-  addPassword: (password: DecryptedPasswordEntry) => void
-  updatePassword: (id: string, password: DecryptedPasswordEntry) => void
+  setPasswords: (passwords: PasswordItem[]) => void
+  addPassword: (password: PasswordItem) => void
+  updatePassword: (id: string, password: PasswordItem) => void
   deletePassword: (id: string) => void
-
-  setPins: (pins: PinEntry[]) => void
-  addPin: (pin: PinEntry) => void
-  deletePin: (id: string) => void
 
   setSearchQuery: (query: string) => void
   setSelectedTag: (tag: string | null) => void
   setIsLoading: (loading: boolean) => void
   setError: (error: string | null) => void
 
-  getFilteredPasswords: () => DecryptedPasswordEntry[]
+  getFilteredPasswords: () => PasswordItem[]
   clearVault: () => void
 }
 
 export const useVaultStore = create<VaultState>((set, get) => ({
   passwords: [],
-  pins: [],
-  notes: [],
   searchQuery: '',
   selectedTag: null,
   isLoading: false,
@@ -56,21 +61,6 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   deletePassword: (id) =>
     set((state) => ({
       passwords: state.passwords.filter((p) => p.id !== id),
-    })),
-
-  setPins: (pins) =>
-    set({
-      pins,
-    }),
-
-  addPin: (pin) =>
-    set((state) => ({
-      pins: [pin, ...state.pins],
-    })),
-
-  deletePin: (id) =>
-    set((state) => ({
-      pins: state.pins.filter((p) => p.id !== id),
     })),
 
   setSearchQuery: (query) =>
@@ -120,8 +110,6 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   clearVault: () =>
     set({
       passwords: [],
-      pins: [],
-      notes: [],
       searchQuery: '',
       selectedTag: null,
     }),

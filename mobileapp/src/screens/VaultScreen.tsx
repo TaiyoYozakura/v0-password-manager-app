@@ -38,9 +38,10 @@ export default function VaultScreen({ navigation }: any) {
     setIsLoading(true)
     try {
       const data = await getPasswords(user.uid)
-      setPasswords(data)
+      setPasswords((data as any) || [])
     } catch (error) {
       Alert.alert('Error', 'Failed to load passwords')
+      setPasswords([])
     } finally {
       setIsLoading(false)
     }
@@ -61,7 +62,7 @@ export default function VaultScreen({ navigation }: any) {
     >
       <View style={styles.passwordItemLeft}>
         <View style={styles.tagBadge}>
-          <Ionicons name="lock" size={16} color="#fff" />
+          <Ionicons name="lock-closed" size={16} color="#fff" />
         </View>
         <View style={styles.passwordInfo}>
           <Text style={styles.passwordName}>{item.siteName}</Text>
