@@ -32,6 +32,11 @@ import {
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
+import { TagSelector } from "@/components/vault/tag-selector"
+import { SavedPasswordTrigger } from "@/components/vault/saved-password-trigger"
+import { SavedPasswordsList } from "@/components/vault/saved-passwords-list"
+import { SavePasswordPrompt } from "@/components/vault/save-password-prompt"
+import type { DecryptedPasswordEntry } from "@/lib/types"
 
 interface Props {
   mode: "create" | "edit"
@@ -45,6 +50,10 @@ export function PasswordForm({ mode, id }: Props) {
   const [loading, setLoading] = useState(mode === "edit")
   const [saving, setSaving] = useState(false)
   const [existingTags, setExistingTags] = useState<string[]>([])
+  const [savedPasswords, setSavedPasswords] = useState<DecryptedPasswordEntry[]>([])
+  const [showSavedList, setShowSavedList] = useState(false)
+  const [showSavePrompt, setShowSavePrompt] = useState(false)
+  const [originalData, setOriginalData] = useState<Partial<PasswordInput> | null>(null)
 
   // Form state
   const [siteName, setSiteName] = useState("")
@@ -54,6 +63,7 @@ export function PasswordForm({ mode, id }: Props) {
   const [password, setPassword] = useState("")
   const [tag, setTag] = useState<string>("Other")
   const [customTag, setCustomTag] = useState("")
+  const [tagIconUrl, setTagIconUrl] = useState<string | undefined>()
   const [usingCustomTag, setUsingCustomTag] = useState(false)
   const [notes, setNotes] = useState("")
 
@@ -82,6 +92,7 @@ export function PasswordForm({ mode, id }: Props) {
           mode === "edit" && id ? getPassword(user.uid, id, key) : Promise.resolve(null),
         ])
         if (!active) return
+        setSavedPasswords(allForTags)
         const tags = Array.from(new Set([...DEFAULT_TAGS, ...allForTags.map((e) => e.tag)]))
         setExistingTags(tags)
 
@@ -93,6 +104,18 @@ export function PasswordForm({ mode, id }: Props) {
           setUsername(entry.username)
           setPassword(entry.password)
           setNotes(entry.notes)
+          setTagIconUrl(entry.tagIconUrl)
+          // Store original data for change detection
+          setOriginalData({
+            siteName: entry.siteName,
+            siteUrl: entry.siteUrl,
+            email: entry.email,
+            username: entry.username,
+            password: entry.password,
+            notes: entry.notes,
+            tag: entry.tag,
+            tagIconUrl: entry.tagIconUrl,
+          })
           if (tags.includes(entry.tag)) {
             setTag(entry.tag)
             setUsingCustomTag(false)
@@ -132,6 +155,42 @@ export function PasswordForm({ mode, id }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showGenerator, genLength, genUpper, genLower, genNumbers, genSpecial, genExcludeAmbiguous])
 
+  // Check if form data has changed from original
+  const hasChanged = () => {
+    if (mode === "create") return true // Always show prompt for new passwords
+    if (!originalData) return false
+
+    const finalTag = usingCustomTag ? sanitizeText(customTag, LIMITS.tag) || "Other" : tag || "Other"
+
+    return (
+      originalData.password !== password ||
+      originalData.siteName !== siteName ||
+      originalData.siteUrl !== siteUrl ||
+      originalData.email !== email ||
+      originalData.username !== username ||
+      originalData.notes !== notes ||
+      originalData.tag !== finalTag
+    )
+  }
+
+  const performSave = async (input: PasswordInput) => {
+    setSaving(true)
+    try {
+      if (mode === "create") {
+        await createPassword(user.uid, input, key)
+        toast.success("Password saved")
+      } else if (id) {
+        await updatePassword(user.uid, id, input, key)
+        toast.success("Password updated")
+      }
+      router.replace("/passwords")
+    } catch {
+      toast.error("Could not save password")
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const onSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user || !key) return
@@ -156,26 +215,20 @@ export function PasswordForm({ mode, id }: Props) {
       siteName: sanitizeText(siteName, LIMITS.siteName),
       siteUrl: sanitizeText(siteUrl, LIMITS.url),
       tag: finalTag,
+      tagIconUrl: tagIconUrl,
       password: sanitizeSecret(password, LIMITS.password),
       username: sanitizeText(username, LIMITS.username),
       email: sanitizeText(email, LIMITS.email),
       notes: sanitizeText(notes, LIMITS.notes),
     }
 
-    setSaving(true)
-    try {
-      if (mode === "create") {
-        await createPassword(user.uid, input, key)
-        toast.success("Password saved")
-      } else if (id) {
-        await updatePassword(user.uid, id, input, key)
-        toast.success("Password updated")
-      }
-      router.replace("/passwords")
-    } catch {
-      toast.error("Could not save password")
-    } finally {
-      setSaving(false)
+    // Show save prompt if data has changed
+    if (hasChanged()) {
+      setShowSavePrompt(true)
+      // Store input for use in prompt confirmation
+      ;(window as any).__pendingPasswordInput = input
+    } else {
+      toast.info("No changes to save")
     }
   }
 
@@ -244,15 +297,43 @@ export function PasswordForm({ mode, id }: Props) {
             <Label htmlFor="siteName">
               Site / App Name <span className="text-destructive">*</span>
             </Label>
-            <Input
-              id="siteName"
-              required
-              maxLength={LIMITS.siteName}
-              value={siteName}
-              onChange={(e) => setSiteName(e.target.value)}
-              placeholder="e.g. GitHub"
-              autoComplete="off"
-            />
+            <div className="relative">
+              <Input
+                id="siteName"
+                required
+                maxLength={LIMITS.siteName}
+                value={siteName}
+                onChange={(e) => setSiteName(e.target.value)}
+                placeholder="e.g. GitHub"
+                autoComplete="off"
+                className="pr-10"
+              />
+              <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                <SavedPasswordTrigger onClick={() => setShowSavedList(!showSavedList)} />
+              </div>
+              {/* Saved Passwords List */}
+              <SavedPasswordsList
+                entries={savedPasswords}
+                open={showSavedList}
+                onOpenChange={setShowSavedList}
+                onSelect={(entry) => {
+                  setSiteName(entry.siteName)
+                  setSiteUrl(entry.siteUrl)
+                  setEmail(entry.email)
+                  setUsername(entry.username)
+                  setPassword(entry.password)
+                  setNotes(entry.notes)
+                  if (existingTags.includes(entry.tag)) {
+                    setTag(entry.tag)
+                    setUsingCustomTag(false)
+                  } else {
+                    setCustomTag(entry.tag)
+                    setUsingCustomTag(true)
+                  }
+                  setTagIconUrl(entry.tagIconUrl)
+                }}
+              />
+            </div>
           </div>
 
           {/* Email + Username */}
@@ -381,41 +462,24 @@ export function PasswordForm({ mode, id }: Props) {
           {/* Tag */}
           <div className="grid gap-2">
             <Label>Tag</Label>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              {!usingCustomTag ? (
-                <Select value={tag} onValueChange={setTag}>
-                  <SelectTrigger className="sm:w-[240px]">
-                    <SelectValue placeholder="Select tag" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tagOptions.map((t) => (
-                      <SelectItem key={t} value={t}>
-                        {t}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  value={customTag}
-                  onChange={(e) => setCustomTag(e.target.value)}
-                  placeholder="Type a new tag"
-                  maxLength={LIMITS.tag}
-                  className="sm:w-[240px]"
-                />
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setUsingCustomTag((v) => !v)
-                  if (usingCustomTag) setCustomTag("")
-                }}
-              >
-                {usingCustomTag ? "Pick existing" : "Create new tag"}
-              </Button>
-            </div>
+            <TagSelector
+              tags={tagOptions}
+              value={usingCustomTag ? customTag : tag}
+              onSelect={(selectedTag, iconUrl) => {
+                // Check if it's in existing tags or is new
+                const isExisting = tagOptions.includes(selectedTag)
+                if (isExisting) {
+                  setTag(selectedTag)
+                  setUsingCustomTag(false)
+                  setTagIconUrl(undefined)
+                } else {
+                  setCustomTag(selectedTag)
+                  setUsingCustomTag(true)
+                  setTagIconUrl(iconUrl)
+                }
+              }}
+              className="relative z-10"
+            />
           </div>
 
           {/* Notes */}
@@ -445,6 +509,20 @@ export function PasswordForm({ mode, id }: Props) {
           {mode === "create" ? "Save password" : "Save changes"}
         </Button>
       </div>
+
+      {/* Save Password Prompt */}
+      <SavePasswordPrompt
+        open={showSavePrompt}
+        onOpenChange={setShowSavePrompt}
+        onConfirm={async () => {
+          const pendingInput = (window as any).__pendingPasswordInput
+          if (pendingInput) {
+            await performSave(pendingInput)
+            setShowSavePrompt(false)
+          }
+        }}
+        siteName={siteName}
+      />
     </form>
   )
 }

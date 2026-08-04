@@ -1,9 +1,12 @@
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { getTagIcon } from "@/lib/utils/tag-icons"
 
 interface Props {
   tag: string
   className?: string
+  showIcon?: boolean
+  customIconUrl?: string
 }
 
 // Deterministic subtle coloring per tag using HSL from a hash, mixed with theme tokens.
@@ -21,14 +24,29 @@ const palettes = [
   "bg-chart-5/15 text-chart-5 border-chart-5/30",
 ]
 
-export function TagBadge({ tag, className }: Props) {
+export function TagBadge({ tag, className, showIcon = true, customIconUrl }: Props) {
   const idx = hashTag(tag || "Other") % palettes.length
+  const displayTag = tag || "Other"
+  const IconComponent = showIcon && !customIconUrl ? getTagIcon(displayTag) : null
+
   return (
     <Badge
       variant="outline"
-      className={cn("border font-medium capitalize", palettes[idx], className)}
+      className={cn("border font-medium capitalize inline-flex items-center gap-1.5", palettes[idx], className)}
     >
-      {tag || "Other"}
+      {customIconUrl ? (
+        <img
+          src={customIconUrl}
+          alt={`${displayTag} icon`}
+          className="size-3.5 flex-shrink-0 rounded"
+          onError={(e) => {
+            e.currentTarget.style.display = "none"
+          }}
+        />
+      ) : IconComponent ? (
+        <IconComponent className="size-3.5 flex-shrink-0" aria-hidden />
+      ) : null}
+      {displayTag}
     </Badge>
   )
 }
