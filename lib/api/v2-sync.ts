@@ -23,7 +23,7 @@ export type SyncMessage = SyncEventMessage | SyncStatusMessage
 
 export interface SyncClient {
   connect(sessionToken: string, userId: string): Promise<void>
-  disconnect(): void>
+  disconnect(): void
   send(event: SyncEvent): void
   onEvent(callback: (event: SyncEvent) => void): void
   onStatusChange(callback: (status: "synced" | "syncing" | "error") => void): void
