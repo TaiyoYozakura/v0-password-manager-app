@@ -86,7 +86,6 @@ export interface PasswordInput {
   siteName: string
   siteUrl: string
   tag: string
-  tagIconUrl?: string
   password: string
   username: string
   email: string
@@ -101,7 +100,6 @@ function buildEncryptedPayload(input: PasswordInput, key: CryptoJS.lib.WordArray
     encryptedNotes: encryptString(input.notes, key),
     integrityHash: integrityHash(input.password, key),
     tag: input.tag || "Other",
-    tagIconUrl: input.tagIconUrl,
     siteUrl: input.siteUrl || "",
     siteName: input.siteName,
   }

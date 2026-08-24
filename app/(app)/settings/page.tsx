@@ -59,7 +59,6 @@ import { ImportDialog } from "@/components/vault/import-dialog"
 import { BackupReminder } from "@/components/vault/backup-reminder"
 import { DuplicateCleanupDialog } from "@/components/vault/duplicate-cleanup-dialog"
 import { RecoveryStrategyGuide, RecoveryFAQ } from "@/components/vault/recovery-strategy-info"
-import { ExportDialog } from "@/components/vault/export-dialog"
 import Link from "next/link"
 import {
   Dialog,
@@ -85,8 +84,10 @@ export default function SettingsPage() {
   const [autoLogout, setAutoLogout] = useState<string>(String(profile?.autoLogoutMinutes ?? 15))
   const [savingLogout, setSavingLogout] = useState(false)
 
-  // Export with Master PIN
+  // Export
   const [exportOpen, setExportOpen] = useState(false)
+  const [exportPassphrase, setExportPassphrase] = useState("")
+  const [exporting, setExporting] = useState(false)
 
   // Import
   const [importOpen, setImportOpen] = useState(false)
@@ -199,7 +200,81 @@ export default function SettingsPage() {
     }
   }
 
-
+  const onExport = async () => {
+    if (!user || !key) return
+    if (exportPassphrase.length < 8) {
+      toast.error("Use a passphrase of at least 8 characters")
+      return
+    }
+    setExporting(true)
+    try {
+      const [passwords, pins] = await Promise.all([
+        listPasswords(user.uid, key),
+        listPins(user.uid, key),
+      ])
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        user: { uid: user.uid, email: user.email },
+        passwords: passwords.map((p) => ({
+          siteName: p.siteName,
+          siteUrl: p.siteUrl,
+          tag: p.tag,
+          username: p.username,
+          email: p.email,
+          password: p.password,
+          notes: p.notes,
+          createdAt: p.createdAt?.toISOString() ?? null,
+        })),
+        pins: pins.map((p) => ({
+          label: p.label,
+          category: p.category,
+          pin: p.pin,
+          notes: p.notes,
+          createdAt: p.createdAt?.toISOString() ?? null,
+        })),
+      }
+      const json = JSON.stringify(payload, null, 2)
+      const encrypted = encryptWithPassphrase(json, exportPassphrase)
+      const blob = new Blob(
+        [
+          JSON.stringify(
+            {
+              format: "vaultly-export",
+              version: 1,
+              algorithm: "AES-256 (CryptoJS default)",
+              data: encrypted,
+            },
+            null,
+            2,
+          ),
+        ],
+        { type: "application/json" },
+      )
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `vaultly-export-${new Date().toISOString().slice(0, 10)}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+      
+      // Update last backup date
+      if (user) {
+        await updateLastBackupDate(user.uid)
+        await refreshProfile()
+      }
+      
+      toast.success("Encrypted export downloaded")
+      setExportOpen(false)
+      setExportPassphrase("")
+    } catch {
+      toast.error("Export failed")
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const onImportVault = async (passwords: any[], pins: any[]) => {
     if (!user || !key) return
@@ -575,8 +650,41 @@ export default function SettingsPage() {
         onImport={onImportVault}
       />
 
-      {/* Export dialog with Master PIN */}
-      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
+      {/* Export dialog */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Export encrypted backup</DialogTitle>
+            <DialogDescription>
+              Choose a passphrase to protect your encrypted backup file.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="export-pass">Export passphrase</Label>
+            <Input
+              id="export-pass"
+              type="password"
+              value={exportPassphrase}
+              onChange={(e) => setExportPassphrase(e.target.value)}
+              placeholder="At least 8 characters"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setExportOpen(false)}
+              disabled={exporting}
+            >
+              Cancel
+            </Button>
+            <Button onClick={onExport} disabled={exporting || !exportPassphrase} className="gap-2">
+              {exporting ? <Spinner className="size-4" /> : <Download className="size-4" aria-hidden />}
+              Download
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Duplicate cleanup */}
       {user && (
