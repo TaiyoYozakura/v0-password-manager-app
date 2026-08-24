@@ -1,13 +1,22 @@
-import CryptoJS from "crypto-js"
+import AES from "crypto-js/aes"
+import HmacSHA256 from "crypto-js/hmac-sha256"
+import SHA256 from "crypto-js/sha256"
+import Hex from "crypto-js/enc-hex"
+import Utf8 from "crypto-js/enc-utf8"
+import type { lib } from "crypto-js"
+
+type WordArray = lib.WordArray
+
+const cryptoJs = { AES, HmacSHA256, SHA256, enc: { Hex, Utf8 } }
 
 /**
  * Derive the symmetric AES-256 encryption key from the user's UID + email.
- * Returns a WordArray suitable for use with CryptoJS.AES.
+ * Returns a WordArray suitable for use with cryptoJs.AES.
  * The derived key is NEVER persisted anywhere (localStorage, Firestore, etc).
  */
-export function deriveKey(uid: string, email: string): CryptoJS.lib.WordArray {
+export function deriveKey(uid: string, email: string): WordArray {
   const material = `${uid}:${email.trim().toLowerCase()}`
-  return CryptoJS.SHA256(material)
+  return cryptoJs.SHA256(material)
 }
 
 /**
@@ -16,24 +25,24 @@ export function deriveKey(uid: string, email: string): CryptoJS.lib.WordArray {
  * Empty/undefined values are returned as an empty string to keep Firestore
  * schema consistent (they are still "encrypted-shaped" placeholders).
  */
-export function encryptString(plaintext: string | undefined | null, key: CryptoJS.lib.WordArray): string {
+export function encryptString(plaintext: string | undefined | null, key: WordArray): string {
   const value = plaintext ?? ""
   if (value.length === 0) {
     // Still encrypt so we always store ciphertext, never plaintext.
-    return CryptoJS.AES.encrypt("", key.toString()).toString()
+    return cryptoJs.AES.encrypt("", key.toString()).toString()
   }
-  return CryptoJS.AES.encrypt(value, key.toString()).toString()
+  return cryptoJs.AES.encrypt(value, key.toString()).toString()
 }
 
 /**
  * AES-256 decrypt a ciphertext string. Returns plaintext.
  * If decryption fails or yields empty bytes, returns an empty string.
  */
-export function decryptString(ciphertext: string | undefined | null, key: CryptoJS.lib.WordArray): string {
+export function decryptString(ciphertext: string | undefined | null, key: WordArray): string {
   if (!ciphertext) return ""
   try {
-    const bytes = CryptoJS.AES.decrypt(ciphertext, key.toString())
-    const text = bytes.toString(CryptoJS.enc.Utf8)
+    const bytes = cryptoJs.AES.decrypt(ciphertext, key.toString())
+    const text = bytes.toString(cryptoJs.enc.Utf8)
     return text
   } catch {
     return ""
@@ -43,8 +52,8 @@ export function decryptString(ciphertext: string | undefined | null, key: Crypto
 /**
  * HMAC-SHA256 integrity hash. Used to detect tampering on sensitive fields.
  */
-export function integrityHash(plaintext: string, key: CryptoJS.lib.WordArray): string {
-  return CryptoJS.HmacSHA256(plaintext, key.toString()).toString(CryptoJS.enc.Hex)
+export function integrityHash(plaintext: string, key: WordArray): string {
+  return cryptoJs.HmacSHA256(plaintext, key.toString()).toString(cryptoJs.enc.Hex)
 }
 
 /**
@@ -52,7 +61,7 @@ export function integrityHash(plaintext: string, key: CryptoJS.lib.WordArray): s
  * the hash in Firestore so we can verify future PIN entries.
  */
 export function hashPin(pin: string, salt: string): string {
-  return CryptoJS.SHA256(`${salt}:${pin}`).toString(CryptoJS.enc.Hex)
+  return cryptoJs.SHA256(`${salt}:${pin}`).toString(cryptoJs.enc.Hex)
 }
 
 /** Generate a cryptographically random salt (hex). */
@@ -69,5 +78,5 @@ export function generateSalt(byteLength = 16): string {
  * Used for the Settings → Export Vault flow.
  */
 export function encryptWithPassphrase(plaintext: string, passphrase: string): string {
-  return CryptoJS.AES.encrypt(plaintext, passphrase).toString()
+  return cryptoJs.AES.encrypt(plaintext, passphrase).toString()
 }
