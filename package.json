@@ -1,13 +1,16 @@
 {
   "name": "vaultly",
   "version": "2.0.0",
-  "description": "A secure, end-to-end encrypted password manager website",
+  "description": "A secure, end-to-end encrypted password manager with browser extension support - Monorepo",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "build:extension": "cd extension && npm run build",
+    "package:extension": "cd extension && npm run package",
+    "release": "npm run build:extension && npm run package:extension"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
