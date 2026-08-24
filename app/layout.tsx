@@ -14,6 +14,11 @@ export const metadata: Metadata = {
   description:
     "A zero-knowledge password manager with client-side AES-256 encryption, secure PIN vault, and generator.",
   generator: "v0.app",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/apple-icon.png",
+  },
 }
 
 export const viewport: Viewport = {
