@@ -1,5 +1,1 @@
-packages:
-  - 'web'
-  - 'extension'
-  - 'mobileapp'
-  - 'shared'
+packages: []
