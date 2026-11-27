@@ -7,12 +7,12 @@ import { useAuth } from "@/components/providers/auth-provider"
 export function MobileHeader() {
   const { logout, lock, profile } = useAuth()
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-background/95 px-4 py-3 backdrop-blur md:hidden">
-      <div className="flex items-center gap-2">
-        <div className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
+    <header className="sticky top-0 z-20 flex items-center justify-between border-b border-border/80 bg-background/90 px-4 py-3 backdrop-blur-xl md:hidden">
+      <div className="flex items-center gap-2.5">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm shadow-primary/20">
           <ShieldCheck className="size-4" aria-hidden />
         </div>
-        <span className="text-base font-semibold tracking-tight">Vaultly</span>
+        <span className="text-[15px] font-semibold tracking-[-0.04em]">vaultly</span>
       </div>
       <div className="flex items-center gap-1">
         {profile?.appLockPinHash && (
