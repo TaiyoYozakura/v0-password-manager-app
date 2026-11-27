@@ -31,11 +31,57 @@ service cloud.firestore {
       ]);
     }
 
+    function hasIdentityFields() {
+      return request.resource.data.keys().hasAll([
+        'encryptedName',
+        'encryptedEmail',
+        'encryptedCategory',
+        'encryptedNotes',
+        'integrityHash',
+        'createdAt',
+        'updatedAt'
+      ])
+      && request.resource.data.keys().hasOnly([
+        'encryptedName',
+        'encryptedEmail',
+        'encryptedCategory',
+        'encryptedNotes',
+        'integrityHash',
+        'createdAt',
+        'updatedAt'
+      ])
+      && request.resource.data.encryptedName is string
+      && request.resource.data.encryptedEmail is string
+      && request.resource.data.encryptedCategory is string
+      && request.resource.data.encryptedNotes is string
+      && request.resource.data.integrityHash is string
+      && request.resource.data.encryptedName.size() <= 8192
+      && request.resource.data.encryptedEmail.size() <= 8192
+      && request.resource.data.encryptedCategory.size() <= 8192
+      && request.resource.data.encryptedNotes.size() <= 8192;
+    }
+
+    function hasValidIdentityReference(userId) {
+      return !request.resource.data.keys().hasAny(['emailIdentityId'])
+             || (request.resource.data.emailIdentityId is string
+                 && request.resource.data.emailIdentityId.size() <= 128
+                 && exists(/databases/$(database)/documents/users/$(userId)/emailIdentities/$(request.resource.data.emailIdentityId));
+    }
+
     match /users/{userId}/passwords/{docId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create, update: if request.auth != null
                             && request.auth.uid == userId
-                            && hasPasswordFields();
+                            && hasPasswordFields()
+                            && hasValidIdentityReference(userId);
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId}/emailIdentities/{identityId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+                            && request.auth.uid == userId
+                            && hasIdentityFields();
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
 

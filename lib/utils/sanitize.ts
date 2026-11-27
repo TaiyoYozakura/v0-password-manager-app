@@ -51,6 +51,11 @@ export function getHostname(url: string): string {
   }
 }
 
+/** Normalize common www URL variants while keeping other subdomains distinct. */
+export function getNormalizedDomain(url: string): string {
+  return getHostname(url).replace(/^www\./i, "").replace(/\.$/, "")
+}
+
 /** Simple HTML escape for any dynamic rendering that bypasses React escaping. */
 export function escapeHtml(str: string): string {
   return str

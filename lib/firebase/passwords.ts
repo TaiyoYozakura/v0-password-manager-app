@@ -1,5 +1,6 @@
 import {
   collection,
+  deleteField,
   doc,
   deleteDoc,
   getDocs,
@@ -13,7 +14,7 @@ import {
   Timestamp,
 } from "firebase/firestore"
 import { getFirebase } from "./config"
-import type { EncryptedPasswordDoc, DecryptedPasswordEntry } from "../types"
+import type { EncryptedPasswordDoc, DecryptedPasswordEntry, PasswordMetadataEntry } from "../types"
 import { decryptString, encryptString, integrityHash } from "../crypto/encryption"
 import type CryptoJS from "crypto-js"
 
@@ -40,6 +41,7 @@ export async function listPasswords(
       id: d.id,
       siteName: data.siteName || "",
       siteUrl: data.siteUrl || "",
+      emailIdentityId: data.emailIdentityId || undefined,
       tag: data.tag || "Other",
       password,
       username,
@@ -51,6 +53,28 @@ export async function listPasswords(
     })
   })
   return results
+}
+
+export async function listPasswordMetadata(
+  uid: string,
+  key: CryptoJS.lib.WordArray,
+): Promise<PasswordMetadataEntry[]> {
+  const q = query(passwordsCol(uid), orderBy("createdAt", "desc"))
+  const snap = await getDocs(q)
+  return snap.docs.map((d) => {
+    const data = d.data() as EncryptedPasswordDoc
+    return {
+      id: d.id,
+      siteName: data.siteName || "",
+      siteUrl: data.siteUrl || "",
+      emailIdentityId: data.emailIdentityId || undefined,
+      tag: data.tag || "Other",
+      username: decryptString(data.encryptedUsername, key),
+      email: decryptString(data.encryptedEmail, key),
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : null,
+      updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : null,
+    }
+  })
 }
 
 export async function getPassword(
@@ -71,6 +95,7 @@ export async function getPassword(
     id: snap.id,
     siteName: data.siteName || "",
     siteUrl: data.siteUrl || "",
+    emailIdentityId: data.emailIdentityId || undefined,
     tag: data.tag || "Other",
     password,
     username,
@@ -90,6 +115,7 @@ export interface PasswordInput {
   username: string
   email: string
   notes: string
+  emailIdentityId?: string
 }
 
 function buildEncryptedPayload(input: PasswordInput, key: CryptoJS.lib.WordArray) {
@@ -112,6 +138,7 @@ export async function createPassword(
 ): Promise<string> {
   const ref = await addDoc(passwordsCol(uid), {
     ...buildEncryptedPayload(input, key),
+    ...(input.emailIdentityId ? { emailIdentityId: input.emailIdentityId } : {}),
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   })
@@ -129,6 +156,7 @@ export async function updatePassword(
   // Preserve createdAt; only update mutable fields + updatedAt
   await updateDoc(ref, {
     ...buildEncryptedPayload(input, key),
+    emailIdentityId: input.emailIdentityId || deleteField(),
     updatedAt: serverTimestamp(),
   })
 }
