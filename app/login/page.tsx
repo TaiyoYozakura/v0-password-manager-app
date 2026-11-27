@@ -56,9 +56,9 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-[radial-gradient(color-mix(in_srgb,var(--foreground)_9%,transparent)_0.7px,transparent_0.7px)] bg-[size:22px_22px] opacity-30 [mask-image:linear-gradient(to_bottom,black,transparent_82%)]" />
       </div>
 
-      <div className="relative mx-auto grid min-h-dvh w-full max-w-[1240px] items-center gap-12 px-5 py-10 sm:px-8 lg:grid-cols-[1fr_430px] lg:gap-20 lg:px-12">
+      <div className="relative mx-auto grid min-h-dvh w-full max-w-[1240px] items-center gap-12 px-5 py-6 sm:px-8 sm:py-10 lg:grid-cols-[1fr_430px] lg:gap-20 lg:px-12">
         <section className="mx-auto w-full max-w-xl lg:mx-0">
-          <div className="mb-14 flex items-center gap-3">
+          <div className="mb-8 flex items-center gap-3 sm:mb-14">
             <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/15"><ShieldCheck className="size-5" aria-hidden /></span>
             <span>
               <span className="block text-lg font-semibold tracking-[-0.05em]">vaultly</span>
@@ -68,15 +68,15 @@ export default function LoginPage() {
 
           <p className="mb-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary"><Sparkles className="size-3.5" aria-hidden /> A little more peace of mind</p>
           <h1 className="max-w-lg text-balance text-4xl font-semibold leading-[1.08] tracking-[-0.055em] sm:text-5xl lg:text-[58px]">Your digital life,<br /><span className="text-primary">kept yours.</span></h1>
-          <p className="mt-6 max-w-md text-base leading-7 text-muted-foreground">A private home for passwords, identities, and the little details you never want to lose.</p>
+          <p className="mt-4 max-w-md text-base leading-7 text-muted-foreground sm:mt-6">A private home for passwords, identities, and the little details you never want to lose.</p>
 
-          <div className="mt-10 grid max-w-lg gap-3 sm:grid-cols-3">
-            <TrustPoint icon={<LockKeyhole className="size-4" aria-hidden />} title="Encrypted" detail="On your device" tone="violet" />
+          <div className="mt-8 hidden max-w-lg gap-3 sm:grid sm:grid-cols-3">
+            <TrustPoint icon={<LockKeyhole className="size-4" aria-hidden />} title="Encrypted" detail="Before sync" tone="violet" />
             <TrustPoint icon={<Eye className="size-4" aria-hidden />} title="Just yours" detail="Private by default" tone="rose" />
-            <TrustPoint icon={<KeyRound className="size-4" aria-hidden />} title="In control" detail="Your key, always" tone="mint" />
+            <TrustPoint icon={<KeyRound className="size-4" aria-hidden />} title="In control" detail="Your Google account" tone="mint" />
           </div>
 
-          <div className="mt-10 hidden items-center gap-2 text-xs text-muted-foreground sm:flex"><span className="size-1.5 rounded-full bg-[#a4d8cb]" aria-hidden /> Your data stays encrypted on your device</div>
+          <div className="mt-10 hidden items-center gap-2 text-xs text-muted-foreground sm:flex"><span className="size-1.5 rounded-full bg-[#a4d8cb]" aria-hidden /> Vault fields are encrypted before syncing</div>
         </section>
 
         <Card className="mx-auto w-full max-w-md overflow-hidden rounded-2xl border-border/80 bg-card/90 shadow-[0_28px_90px_-50px_rgba(0,0,0,0.8)] backdrop-blur-xl lg:mx-0">
@@ -105,8 +105,8 @@ export default function LoginPage() {
               <div className="flex items-start gap-3">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#f08cb8]/10 text-[#f08cb8]"><KeyRound className="size-4" aria-hidden /></span>
                 <div>
-                  <p className="text-xs font-semibold">Your master password is your only key</p>
-                  <p className="mt-1.5 text-xs leading-5 text-muted-foreground">It can&apos;t be recovered if lost. Keep it safe and consider storing an encrypted backup.</p>
+                  <p className="text-xs font-semibold">Your Google account unlocks your vault</p>
+                  <p className="mt-1.5 text-xs leading-5 text-muted-foreground">Vault access depends on this account. Keep it secure and store an encrypted backup.</p>
                 </div>
               </div>
             </div>
@@ -115,7 +115,7 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        <p className="absolute inset-x-0 bottom-5 text-center text-[11px] text-muted-foreground/70">No passwords sent to us <span className="px-1.5 text-primary/70">·</span> No ads <span className="px-1.5 text-primary/70">·</span> No tracking <span className="px-1.5 text-primary/70">·</span> Open source</p>
+        <p className="absolute inset-x-0 bottom-5 text-center text-[11px] text-muted-foreground/70">Passwords encrypted before sync <span className="px-1.5 text-primary/70">·</span> No ads <span className="px-1.5 text-primary/70">·</span> No tracking <span className="px-1.5 text-primary/70">·</span> Open source</p>
       </div>
     </main>
   )

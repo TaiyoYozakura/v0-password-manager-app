@@ -21,10 +21,10 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main navigation"
-      className="fixed inset-x-0 bottom-0 z-30 overflow-x-auto border-t border-border bg-background/95 backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 backdrop-blur md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <ul className="mx-auto flex w-max min-w-full max-w-4xl justify-center overflow-visible">
+      <ul className="mx-auto grid w-full max-w-4xl grid-cols-4">
         {items.map((item) => {
           const active = pathname === item.href || pathname?.startsWith(item.href + "/")
           const Icon = item.icon

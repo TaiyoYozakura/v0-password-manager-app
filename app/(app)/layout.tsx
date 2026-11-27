@@ -75,7 +75,7 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <DesktopTopbar />
         <MobileHeader />
-        <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
+        <main className="min-w-0 flex-1 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-0">{children}</main>
       </div>
       <BottomNav />
 
