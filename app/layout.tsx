@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" })
 export const metadata: Metadata = {
   title: "Vaultly — Secure Password Manager",
   description:
-    "A zero-knowledge password manager with client-side AES-256 encryption, secure PIN vault, and generator.",
+    "A zero-knowledge password manager with encrypted email identities, website account organization, secure PIN vault, and generator.",
   generator: "v0.app",
 }
 

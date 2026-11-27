@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import toast from "react-hot-toast"
 import { Eye, EyeOff, Wand2, Save, ArrowLeft } from "lucide-react"
 import { useAuth } from "@/components/providers/auth-provider"
@@ -13,6 +14,7 @@ import {
   type PasswordInput,
 } from "@/lib/firebase/passwords"
 import { DEFAULT_TAGS } from "@/lib/types"
+import { createEmailIdentity, listEmailIdentities, updateEmailIdentity, type EmailIdentity, type EmailIdentityInput } from "@/lib/firebase/email-identities"
 import { LIMITS, isValidUrl, sanitizeSecret, sanitizeText } from "@/lib/utils/sanitize"
 import { generatePassword } from "@/lib/crypto/generate"
 import { Button } from "@/components/ui/button"
@@ -27,11 +29,13 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectGroup,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Slider } from "@/components/ui/slider"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Props {
   mode: "create" | "edit"
@@ -45,6 +49,12 @@ export function PasswordForm({ mode, id }: Props) {
   const [loading, setLoading] = useState(mode === "edit")
   const [saving, setSaving] = useState(false)
   const [existingTags, setExistingTags] = useState<string[]>([])
+  const [emailIdentities, setEmailIdentities] = useState<EmailIdentity[]>([])
+  const [emailIdentityId, setEmailIdentityId] = useState("")
+  const [identityDialogOpen, setIdentityDialogOpen] = useState(false)
+  const [identityDialogMode, setIdentityDialogMode] = useState<"create" | "edit">("create")
+  const [identitySaving, setIdentitySaving] = useState(false)
+  const [newIdentity, setNewIdentity] = useState<EmailIdentityInput>({ name: "", email: "", category: "Personal", notes: "" })
 
   // Form state
   const [siteName, setSiteName] = useState("")
@@ -77,19 +87,22 @@ export function PasswordForm({ mode, id }: Props) {
     let active = true
     ;(async () => {
       try {
-        const [allForTags, entry] = await Promise.all([
+        const [allForTags, entry, identities] = await Promise.all([
           listPasswords(user.uid, key),
           mode === "edit" && id ? getPassword(user.uid, id, key) : Promise.resolve(null),
+          listEmailIdentities(user.uid, key),
         ])
         if (!active) return
         const tags = Array.from(new Set([...DEFAULT_TAGS, ...allForTags.map((e) => e.tag)]))
         setExistingTags(tags)
+        setEmailIdentities(identities)
 
         if (mode === "edit" && entry && !initializedRef.current) {
           initializedRef.current = true
           setSiteName(entry.siteName)
           setSiteUrl(entry.siteUrl)
           setEmail(entry.email)
+          setEmailIdentityId(entry.emailIdentityId ?? "")
           setUsername(entry.username)
           setPassword(entry.password)
           setNotes(entry.notes)
@@ -159,6 +172,7 @@ export function PasswordForm({ mode, id }: Props) {
       password: sanitizeSecret(password, LIMITS.password),
       username: sanitizeText(username, LIMITS.username),
       email: sanitizeText(email, LIMITS.email),
+      emailIdentityId: emailIdentityId || undefined,
       notes: sanitizeText(notes, LIMITS.notes),
     }
 
@@ -179,6 +193,59 @@ export function PasswordForm({ mode, id }: Props) {
     }
   }
 
+  const selectedIdentity = emailIdentities.find((identity) => identity.id === emailIdentityId)
+
+  const openCreateIdentity = () => {
+    setNewIdentity({ name: "", email: "", category: "Personal", notes: "" })
+    setIdentityDialogMode("create")
+    setIdentityDialogOpen(true)
+  }
+
+  const openEditIdentity = () => {
+    if (!selectedIdentity) return
+    setNewIdentity({ name: selectedIdentity.name, email: selectedIdentity.email, category: selectedIdentity.category, notes: selectedIdentity.notes })
+    setIdentityDialogMode("edit")
+    setIdentityDialogOpen(true)
+  }
+
+  const saveIdentity = async () => {
+    if (!user || !key) return
+    const input: EmailIdentityInput = {
+      name: sanitizeText(newIdentity.name, LIMITS.label),
+      email: sanitizeText(newIdentity.email, LIMITS.email),
+      category: sanitizeText(newIdentity.category, LIMITS.category),
+      notes: sanitizeText(newIdentity.notes, LIMITS.notes),
+    }
+    if (!input.name || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) {
+      toast.error("Enter a display name and a valid email address")
+      return
+    }
+    setIdentitySaving(true)
+    try {
+      let identityId: string
+      if (identityDialogMode === "edit") {
+        if (!selectedIdentity) {
+          toast.error("Select an identity to edit")
+          return
+        }
+        await updateEmailIdentity(user.uid, selectedIdentity.id, input, key)
+        identityId = selectedIdentity.id
+      } else {
+        identityId = await createEmailIdentity(user.uid, input, key)
+      }
+      const updatedIdentities = await listEmailIdentities(user.uid, key)
+      setEmailIdentities(updatedIdentities)
+      setEmailIdentityId(identityId)
+      setIdentityDialogOpen(false)
+      setNewIdentity({ name: "", email: "", category: "Personal", notes: "" })
+      toast.success(identityDialogMode === "edit" ? "Identity updated" : "Identity created and selected")
+    } catch {
+      toast.error("Could not create email identity")
+    } finally {
+      setIdentitySaving(false)
+    }
+  }
+
   const tagOptions = useMemo(() => existingTags, [existingTags])
 
   if (loading) {
@@ -190,6 +257,7 @@ export function PasswordForm({ mode, id }: Props) {
   }
 
   return (
+    <>
     <form onSubmit={onSave} className="mx-auto w-full max-w-3xl px-4 py-6 md:px-8 md:py-10">
       <div className="mb-6 flex items-center gap-3">
         <Button
@@ -280,6 +348,25 @@ export function PasswordForm({ mode, id }: Props) {
                 placeholder="Optional"
                 autoComplete="off"
               />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="emailIdentity">Email identity</Label>
+            <Select value={emailIdentityId || "__none__"} onValueChange={(value) => setEmailIdentityId(value === "__none__" ? "" : value)}>
+              <SelectTrigger id="emailIdentity" aria-label="Link this account to an email identity"><SelectValue placeholder="No identity linked" /></SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="__none__">No identity linked</SelectItem>
+                  {emailIdentities.map((identity) => <SelectItem key={identity.id} value={identity.id}>{identity.name} · {identity.email}</SelectItem>)}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">Optional. Choose which email identity you use to sign in to this account.</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={openCreateIdentity}>Create identity</Button>
+              <Button type="button" variant="ghost" size="sm" onClick={openEditIdentity} disabled={!selectedIdentity}>Edit selected identity</Button>
+              <Link href="/identities" className="text-xs text-primary underline-offset-4 hover:underline">Manage identities</Link>
             </div>
           </div>
 
@@ -446,6 +533,22 @@ export function PasswordForm({ mode, id }: Props) {
         </Button>
       </div>
     </form>
+    <Dialog open={identityDialogOpen} onOpenChange={setIdentityDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{identityDialogMode === "edit" ? "Edit email identity" : "Create an email identity"}</DialogTitle>
+          <DialogDescription>Identity details are encrypted on this device. {identityDialogMode === "edit" ? "Changes apply to every account linked to this identity." : "The new identity will be selected for this account."}</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-2"><Label htmlFor="quick-identity-name">Display name</Label><Input id="quick-identity-name" autoComplete="off" maxLength={LIMITS.label} required value={newIdentity.name} onChange={(event) => setNewIdentity({ ...newIdentity, name: event.target.value })} placeholder="Personal email" /></div>
+          <div className="grid gap-2"><Label htmlFor="quick-identity-email">Email address</Label><Input id="quick-identity-email" type="email" autoComplete="off" maxLength={LIMITS.email} required value={newIdentity.email} onChange={(event) => setNewIdentity({ ...newIdentity, email: event.target.value })} placeholder="you@example.com" /></div>
+          <div className="grid gap-2"><Label htmlFor="quick-identity-category">Category</Label><Input id="quick-identity-category" maxLength={LIMITS.category} value={newIdentity.category} onChange={(event) => setNewIdentity({ ...newIdentity, category: event.target.value })} placeholder="Personal, work, recovery..." /></div>
+          <div className="grid gap-2"><Label htmlFor="quick-identity-notes">Description / notes</Label><Textarea id="quick-identity-notes" maxLength={LIMITS.notes} rows={3} value={newIdentity.notes} onChange={(event) => setNewIdentity({ ...newIdentity, notes: event.target.value })} placeholder="Optional details" /></div>
+          <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setIdentityDialogOpen(false)}>Cancel</Button><Button type="button" disabled={identitySaving} onClick={() => void saveIdentity()}>{identitySaving ? <Spinner className="size-4" /> : identityDialogMode === "edit" ? "Save identity" : "Create and select"}</Button></div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }
 

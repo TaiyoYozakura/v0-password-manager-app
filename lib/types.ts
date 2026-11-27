@@ -9,6 +9,7 @@ export interface EncryptedPasswordDoc {
   tag: string
   siteUrl: string
   siteName: string
+  emailIdentityId?: string
   createdAt: Timestamp | null
   updatedAt: Timestamp | null
 }
@@ -22,10 +23,13 @@ export interface DecryptedPasswordEntry {
   username: string
   email: string
   notes: string
+  emailIdentityId?: string
   integrityOk: boolean
   createdAt: Date | null
   updatedAt: Date | null
 }
+
+export type PasswordMetadataEntry = Omit<DecryptedPasswordEntry, "password" | "integrityOk" | "notes">
 
 export interface EncryptedPinDoc {
   encryptedPin: string
